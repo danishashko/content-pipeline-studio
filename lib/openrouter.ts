@@ -1,0 +1,128 @@
+/**
+ * OpenRouter LLM client for Content Pipeline Studio.
+ * Supports non-streaming completions and streaming SSE responses.
+ */
+
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_KEY = () => process.env.OPENROUTER_API_KEY ?? "";
+
+// ---------------------------------------------------------------------------
+// Model constants
+// ---------------------------------------------------------------------------
+
+export const MODEL = {
+  RESEARCH: "moonshotai/kimi-k2.5",
+  WRITER: "anthropic/claude-sonnet-4-6",
+  VALIDATOR: "anthropic/claude-sonnet-4-6",
+  PUBLISHER: "openai/gpt-4o-mini",
+} as const;
+
+// Convenience re-exports for direct use
+export const RESEARCH_MODEL = MODEL.RESEARCH;
+export const WRITER_MODEL = MODEL.WRITER;
+export const VALIDATOR_MODEL = MODEL.VALIDATOR;
+export const PUBLISHER_MODEL = MODEL.PUBLISHER;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface LLMOptions {
+  model?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+type ChatMessage = { role: string; content: string };
+
+const DEFAULTS: Required<LLMOptions> = {
+  model: RESEARCH_MODEL,
+  maxTokens: 4096,
+  temperature: 0.3,
+};
+
+const SHARED_HEADERS = {
+  "Content-Type": "application/json",
+  "HTTP-Referer": "https://content-pipeline-studio.vercel.app",
+  "X-Title": "Content Pipeline Studio",
+} as const;
+
+// ---------------------------------------------------------------------------
+// Non-streaming completion
+// ---------------------------------------------------------------------------
+
+/**
+ * Send a single system + user prompt to OpenRouter and return the text response.
+ */
+export async function complete(
+  systemPrompt: string,
+  userPrompt: string,
+  opts: LLMOptions = {},
+): Promise<string> {
+  const config = { ...DEFAULTS, ...opts };
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: {
+      ...SHARED_HEADERS,
+      Authorization: `Bearer ${OPENROUTER_KEY()}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: config.maxTokens,
+      temperature: config.temperature,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OpenRouter error (${res.status}): ${text}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+// ---------------------------------------------------------------------------
+// Streaming completion
+// ---------------------------------------------------------------------------
+
+/**
+ * Open a streaming SSE connection to OpenRouter and return the raw ReadableStream.
+ * The system prompt is prepended as the first message.
+ */
+export async function streamComplete(
+  systemPrompt: string,
+  messages: ChatMessage[],
+  opts: LLMOptions = {},
+): Promise<ReadableStream<Uint8Array>> {
+  const config = { ...DEFAULTS, ...opts };
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: {
+      ...SHARED_HEADERS,
+      Authorization: `Bearer ${OPENROUTER_KEY()}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: config.maxTokens,
+      temperature: config.temperature,
+      stream: true,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+    }),
+  });
+
+  if (!res.ok || !res.body) {
+    const text = res.body ? await res.text() : "(no body)";
+    throw new Error(`OpenRouter stream error (${res.status}): ${text}`);
+  }
+
+  return res.body;
+}

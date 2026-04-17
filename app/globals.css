@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════
+   LIGHT THEME (default)
+   Professional, clean dashboard aesthetic
+   ═══════════════════════════════════════════════════ */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  /* Surfaces */
+  --th-bg: #f8fafc;
+  --th-card: #ffffff;
+  --th-card-alt: #f8fafc;
+  --th-card-hover: #f1f5f9;
+  --th-sidebar: #ffffff;
+  --th-sidebar-hover: #f1f5f9;
+  --th-inset: #f1f5f9;
+
+  /* Text */
+  --th-text: #0f172a;
+  --th-text-secondary: #475569;
+  --th-text-muted: #94a3b8;
+  --th-text-accent: #2563eb;
+  --th-text-inverse: #ffffff;
+
+  /* Borders */
+  --th-border: #e2e8f0;
+  --th-border-subtle: #f1f5f9;
+  --th-border-hover: #cbd5e1;
+  --th-ring: rgba(59, 130, 246, 0.25);
+
+  /* Accent (blue) */
+  --th-accent: #3b82f6;
+  --th-accent-hover: #2563eb;
+  --th-accent-soft: rgba(59, 130, 246, 0.08);
+  --th-accent-muted: rgba(59, 130, 246, 0.15);
+
+  /* Status */
+  --th-success: #22c55e;
+  --th-success-soft: rgba(34, 197, 94, 0.1);
+  --th-warning: #eab308;
+  --th-warning-soft: rgba(234, 179, 8, 0.1);
+  --th-danger: #ef4444;
+  --th-danger-soft: rgba(239, 68, 68, 0.1);
+  --th-info: #3b82f6;
+  --th-info-soft: rgba(59, 130, 246, 0.1);
+
+  /* Stage colors */
+  --th-stage-research: #8b5cf6;
+  --th-stage-research-soft: rgba(139, 92, 246, 0.1);
+  --th-stage-write: #3b82f6;
+  --th-stage-write-soft: rgba(59, 130, 246, 0.1);
+  --th-stage-validate: #f59e0b;
+  --th-stage-validate-soft: rgba(245, 158, 11, 0.1);
+  --th-stage-publish: #22c55e;
+  --th-stage-publish-soft: rgba(34, 197, 94, 0.1);
+
+  /* Shadows */
+  --th-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --th-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* Chart */
+  --th-chart-line: #3b82f6;
+  --th-chart-grid: rgba(0, 0, 0, 0.06);
+
+  /* Scrollbar */
+  --th-scrollbar: rgba(148, 163, 184, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════
+   DARK THEME
+   Deep navy palette, soft blues
+   ═══════════════════════════════════════════════════ */
+.dark {
+  --background: #0b1121;
+  --foreground: #e2e8f0;
+
+  --th-bg: #0b1121;
+  --th-card: #111827;
+  --th-card-alt: #0f172a;
+  --th-card-hover: #1e293b;
+  --th-sidebar: #0f172a;
+  --th-sidebar-hover: #1e293b;
+  --th-inset: #0f172a;
+
+  --th-text: #e2e8f0;
+  --th-text-secondary: #94a3b8;
+  --th-text-muted: #64748b;
+  --th-text-accent: #60a5fa;
+  --th-text-inverse: #0f172a;
+
+  --th-border: #1e293b;
+  --th-border-subtle: #1e293b;
+  --th-border-hover: #334155;
+  --th-ring: rgba(96, 165, 250, 0.25);
+
+  --th-accent: #3b82f6;
+  --th-accent-hover: #60a5fa;
+  --th-accent-soft: rgba(59, 130, 246, 0.12);
+  --th-accent-muted: rgba(59, 130, 246, 0.2);
+
+  --th-success: #4ade80;
+  --th-success-soft: rgba(74, 222, 128, 0.12);
+  --th-warning: #fbbf24;
+  --th-warning-soft: rgba(251, 191, 36, 0.12);
+  --th-danger: #f87171;
+  --th-danger-soft: rgba(248, 113, 113, 0.12);
+  --th-info: #60a5fa;
+  --th-info-soft: rgba(96, 165, 250, 0.12);
+
+  --th-stage-research: #a78bfa;
+  --th-stage-research-soft: rgba(167, 139, 250, 0.15);
+  --th-stage-write: #60a5fa;
+  --th-stage-write-soft: rgba(96, 165, 250, 0.15);
+  --th-stage-validate: #fbbf24;
+  --th-stage-validate-soft: rgba(251, 191, 36, 0.15);
+  --th-stage-publish: #4ade80;
+  --th-stage-publish-soft: rgba(74, 222, 128, 0.15);
+
+  --th-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --th-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  --th-chart-line: #60a5fa;
+  --th-chart-grid: rgba(255, 255, 255, 0.06);
+
+  --th-scrollbar: rgba(100, 116, 139, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════ */
+body {
+  background: var(--th-bg);
+  color: var(--th-text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--th-scrollbar);
+  border-radius: 3px;
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--th-accent);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for theme changes */
+*, *::before, *::after {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+/* Card utility */
+.card {
+  background: var(--th-card);
+  border: 1px solid var(--th-border);
+  border-radius: 12px;
+  box-shadow: var(--th-shadow);
+}
+
+.card:hover {
+  border-color: var(--th-border-hover);
+}
+
+/* Stage badge */
+.stage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Status dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.pending { background: var(--th-text-muted); }
+.status-dot.active { background: var(--th-accent); animation: pulse 2s infinite; }
+.status-dot.success { background: var(--th-success); }
+.status-dot.error { background: var(--th-danger); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, var(--th-inset) 25%, var(--th-card-hover) 50%, var(--th-inset) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
