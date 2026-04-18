@@ -1,6 +1,6 @@
 import type { Article, SiteConfig } from "@/lib/types";
 import { ArticleSchema } from "@/lib/types";
-import { complete, VALIDATOR_MODEL } from "@/lib/openrouter";
+import { complete, resolveModel } from "@/lib/openrouter";
 import { getValidatorPrompt } from "@/lib/pipeline/prompts/validator";
 import { parseJsonResponse } from "@/lib/pipeline/extract-json";
 
@@ -13,8 +13,9 @@ export async function executeValidator(
   article: Article,
   siteConfig: SiteConfig,
 ): Promise<Article> {
+  const validatorModel = resolveModel("validator", siteConfig.modelConfig);
   console.log(
-    `[${jobId}] Validator stage started for: "${article.metadata.title}"`,
+    `[${jobId}] Validator stage started for: "${article.metadata.title}" (model: ${validatorModel})`,
   );
 
   // Step 1: Build validator prompt with site context
@@ -49,10 +50,10 @@ Run all 27 checks. Fix violations. Return the corrected article JSON with a vali
 
   // Step 3: Call OpenRouter
   console.log(
-    `[${jobId}] Calling OpenRouter (${VALIDATOR_MODEL}) for validation`,
+    `[${jobId}] Calling OpenRouter (${validatorModel}) for validation`,
   );
   const rawResponse = await complete(systemPrompt, userPrompt, {
-    model: VALIDATOR_MODEL,
+    model: validatorModel,
     maxTokens: 16384,
     temperature: 0.2,
     jsonMode: true,

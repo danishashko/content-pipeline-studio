@@ -29,6 +29,7 @@ interface SiteConfig {
   authorTitle?: string;
   customerPainPoints?: Record<string, string>;
   caseStudies?: { name: string; context: string; problem: string; solution: string; results: string[]; quote: string }[];
+  modelConfig?: { research?: string; writer?: string; validator?: string; publisher?: string };
 }
 
 interface Site {
@@ -317,6 +318,12 @@ export default function SiteDetailPage() {
   // Edit form fields - Products
   const [editProductPages, setEditProductPages] = useState<{ url: string; title: string; description: string }[]>([]);
 
+  // Edit form fields - Model Configuration
+  const [editModelResearch, setEditModelResearch] = useState("");
+  const [editModelWriter, setEditModelWriter] = useState("");
+  const [editModelValidator, setEditModelValidator] = useState("");
+  const [editModelPublisher, setEditModelPublisher] = useState("");
+
   useEffect(() => {
     async function load() {
       try {
@@ -369,6 +376,10 @@ export default function SiteDetailPage() {
     setEditCtaText(c.cta?.defaultText ?? "");
     setEditCtaFallback(c.cta?.fallbackSentence ?? "");
     setEditProductPages(c.productPages ?? []);
+    setEditModelResearch(c.modelConfig?.research ?? "");
+    setEditModelWriter(c.modelConfig?.writer ?? "");
+    setEditModelValidator(c.modelConfig?.validator ?? "");
+    setEditModelPublisher(c.modelConfig?.publisher ?? "");
   }
 
   function handleEditClick() {
@@ -407,6 +418,12 @@ export default function SiteDetailPage() {
         insightGuardrails: editInsightGuardrails,
         cta: { url: editCtaUrl, defaultText: editCtaText, fallbackSentence: editCtaFallback || undefined },
         productPages: editProductPages.filter(p => p.url && p.title),
+        modelConfig: (editModelResearch || editModelWriter || editModelValidator || editModelPublisher) ? {
+          research: editModelResearch || undefined,
+          writer: editModelWriter || undefined,
+          validator: editModelValidator || undefined,
+          publisher: editModelPublisher || undefined,
+        } : undefined,
       };
 
       const res = await fetch(`/api/sites/${id}`, {
@@ -1046,6 +1063,23 @@ export default function SiteDetailPage() {
                     ))}
                   </div>
                 )}
+
+                {/* Model Configuration */}
+                <div className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <h3 style={{ fontSize: "14px", fontWeight: 700, color: "var(--th-text)", margin: 0 }}>Model Configuration</h3>
+                  <p style={{ fontSize: "12px", color: "var(--th-text-muted)", margin: 0 }}>Leave blank to use defaults. Uses OpenRouter model IDs.</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    {(["research", "writer", "validator", "publisher"] as const).map((stage) => (
+                      <div key={stage} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--th-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{stage}</span>
+                        <span style={{ fontSize: "13px", color: cfg.modelConfig?.[stage] ? "var(--th-text)" : "var(--th-text-muted)", fontFamily: "monospace" }}>
+                          {cfg.modelConfig?.[stage] || (stage === "research" ? "moonshotai/kimi-k2.5" : stage === "publisher" ? "openai/gpt-4o-mini" : "deepseek/deepseek-chat-v3-0324")}
+                          {!cfg.modelConfig?.[stage] && <span style={{ fontSize: "10px", marginLeft: "6px", opacity: 0.6 }}>(default)</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
 
@@ -1154,6 +1188,18 @@ export default function SiteDetailPage() {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                       Add Product Page
                     </button>
+                  </SectionCard>
+                </div>
+
+                {/* Model Configuration */}
+                <div className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <SectionCard title="Model Configuration" description="Override LLM models per pipeline stage. Leave blank for defaults. Uses OpenRouter model IDs (e.g. anthropic/claude-sonnet-4-6).">
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                      <Field label="Research Model" id="edit-model-research" value={editModelResearch} onChange={setEditModelResearch} placeholder="moonshotai/kimi-k2.5" hint="Default: moonshotai/kimi-k2.5" />
+                      <Field label="Writer Model" id="edit-model-writer" value={editModelWriter} onChange={setEditModelWriter} placeholder="deepseek/deepseek-chat-v3-0324" hint="Default: deepseek/deepseek-chat-v3-0324" />
+                      <Field label="Validator Model" id="edit-model-validator" value={editModelValidator} onChange={setEditModelValidator} placeholder="deepseek/deepseek-chat-v3-0324" hint="Default: deepseek/deepseek-chat-v3-0324" />
+                      <Field label="Publisher Model" id="edit-model-publisher" value={editModelPublisher} onChange={setEditModelPublisher} placeholder="openai/gpt-4o-mini" hint="Default: openai/gpt-4o-mini (not used for WP publish)" />
+                    </div>
                   </SectionCard>
                 </div>
 

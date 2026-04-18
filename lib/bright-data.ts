@@ -1,5 +1,5 @@
 /**
- * Bright Data API client for SERP queries and URL scraping.
+ * Bright Data API client for SERP queries, URL scraping, and the Discover API.
  */
 
 const BRIGHT_DATA_KEY = () => process.env.BRIGHT_DATA_API_KEY ?? "";
@@ -22,15 +22,140 @@ export interface SerpOptions {
   numResults?: number;
 }
 
+export interface DiscoverResult {
+  link: string;
+  title: string;
+  description: string;
+  relevanceScore: number;
+  content: string | null;
+}
+
+export interface DiscoverOptions {
+  intent?: string;
+  filterKeywords?: string[];
+  numResults?: number;
+  country?: string;
+  includeContent?: boolean;
+  startDate?: string;
+  endDate?: string;
+}
+
 // ---------------------------------------------------------------------------
-// SERP search
+// Discover API (combines SERP + scraping in one call)
 // ---------------------------------------------------------------------------
 
 /**
- * Query the Bright Data SERP API and return organic search results.
- *
- * Uses the `/serp/req` endpoint. The API returns a JSON object
- * with an `organic` array of result objects.
+ * Query the Bright Data Discover API.
+ * Endpoint: POST https://api.brightdata.com/discover
+ * Async: triggers a task, then polls until done.
+ */
+export async function discover(
+  query: string,
+  options: DiscoverOptions = {},
+): Promise<DiscoverResult[]> {
+  const {
+    intent,
+    filterKeywords,
+    numResults = 10,
+    country = "US",
+    includeContent = false,
+    startDate,
+    endDate,
+  } = options;
+
+  // Step 1: Trigger the discovery task
+  const payload: Record<string, unknown> = {
+    query,
+    num_results: numResults,
+    country,
+    language: "en",
+    format: "json",
+    include_content: includeContent,
+    remove_duplicates: true,
+  };
+  if (intent) payload.intent = intent;
+  if (filterKeywords?.length) payload.filter_keywords = filterKeywords;
+  if (startDate) payload.start_date = startDate;
+  if (endDate) payload.end_date = endDate;
+
+  const triggerRes = await fetch("https://api.brightdata.com/discover", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${BRIGHT_DATA_KEY()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!triggerRes.ok) {
+    const text = await triggerRes.text();
+    throw new Error(`Discover API trigger error (${triggerRes.status}): ${text}`);
+  }
+
+  const triggerData = (await triggerRes.json()) as { task_id?: string; status?: string };
+  const taskId = triggerData.task_id;
+  if (!taskId) {
+    throw new Error(`Discover API returned no task_id: ${JSON.stringify(triggerData)}`);
+  }
+
+  // Step 2: Poll for results (max 60s with exponential backoff)
+  const maxWaitMs = 60_000;
+  const startTime = Date.now();
+  let delayMs = 2_000;
+
+  while (Date.now() - startTime < maxWaitMs) {
+    await new Promise((r) => setTimeout(r, delayMs));
+    delayMs = Math.min(delayMs * 1.5, 10_000);
+
+    const pollRes = await fetch(
+      `https://api.brightdata.com/discover?task_id=${taskId}`,
+      {
+        headers: { Authorization: `Bearer ${BRIGHT_DATA_KEY()}` },
+      },
+    );
+
+    if (!pollRes.ok) {
+      const text = await pollRes.text();
+      throw new Error(`Discover API poll error (${pollRes.status}): ${text}`);
+    }
+
+    const pollData = (await pollRes.json()) as {
+      status: string;
+      results?: {
+        link?: string;
+        title?: string;
+        description?: string;
+        relevance_score?: number;
+        content?: string | null;
+      }[];
+    };
+
+    if (pollData.status === "done") {
+      return (pollData.results ?? []).map((r) => ({
+        link: r.link ?? "",
+        title: r.title ?? "",
+        description: r.description ?? "",
+        relevanceScore: r.relevance_score ?? 0,
+        content: r.content ?? null,
+      }));
+    }
+
+    if (pollData.status !== "processing") {
+      throw new Error(`Discover API unexpected status: ${pollData.status}`);
+    }
+  }
+
+  console.warn(`[Discover] Timed out after ${maxWaitMs / 1000}s for task ${taskId}`);
+  return [];
+}
+
+// ---------------------------------------------------------------------------
+// SERP search (legacy, uses brd_json=1 for parsed results)
+// ---------------------------------------------------------------------------
+
+/**
+ * Query the Bright Data SERP zone and return organic search results.
+ * Uses brd_json=1 to get parsed JSON instead of raw HTML.
  */
 export async function searchSerp(
   query: string,
@@ -38,21 +163,18 @@ export async function searchSerp(
 ): Promise<SerpResult[]> {
   const { country = "us", numResults = 10 } = options;
 
-  const res = await fetch(
-    "https://api.brightdata.com/request",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${BRIGHT_DATA_KEY()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        zone: BRIGHT_DATA_SERP_ZONE(),
-        url: `https://www.google.com/search?q=${encodeURIComponent(query)}&gl=${country}&num=${numResults}`,
-        format: "json",
-      }),
+  const res = await fetch("https://api.brightdata.com/request", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${BRIGHT_DATA_KEY()}`,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      zone: BRIGHT_DATA_SERP_ZONE(),
+      url: `https://www.google.com/search?q=${encodeURIComponent(query)}&gl=${country}&num=${numResults}&brd_json=1`,
+      format: "raw",
+    }),
+  });
 
   if (!res.ok) {
     const text = await res.text();
@@ -61,8 +183,6 @@ export async function searchSerp(
 
   const raw = await res.text();
 
-  // Bright Data SERP zones may return HTML, JSON, or wrapped JSON.
-  // Try to parse as JSON first; if it fails, return empty results.
   let data: Record<string, unknown>;
   try {
     data = JSON.parse(raw) as Record<string, unknown>;
@@ -71,14 +191,13 @@ export async function searchSerp(
     return [];
   }
 
-  // The /request endpoint wraps responses in { status_code, headers, body }.
-  // Unwrap if we detect that structure. Body may be an object or a JSON string.
+  // Unwrap /request envelope { status_code, headers, body }
   if (data.status_code !== undefined && data.body !== undefined) {
     if (typeof data.body === "string") {
       try {
         data = JSON.parse(data.body) as Record<string, unknown>;
       } catch {
-        console.warn(`[SERP] body is a non-JSON string (${(data.body as string).length} chars). First 200: ${(data.body as string).slice(0, 200)}`);
+        console.warn(`[SERP] body is non-JSON (${(data.body as string).length} chars)`);
         return [];
       }
     } else if (typeof data.body === "object" && data.body !== null) {
@@ -86,17 +205,12 @@ export async function searchSerp(
     }
   }
 
-  // Different zones use different response shapes.
-  // Try common field names for organic results.
   const organic = (
-    data.organic ??
-    data.results ??
-    data.organic_results ??
-    []
+    data.organic ?? data.results ?? data.organic_results ?? []
   ) as Record<string, unknown>[];
 
   if (organic.length === 0) {
-    console.warn(`[SERP] No organic results found. Response keys: ${Object.keys(data).join(", ")}`);
+    console.warn(`[SERP] No organic results. Keys: ${Object.keys(data).join(", ")}`);
   }
 
   return organic.map((item, idx) => ({
@@ -113,9 +227,6 @@ export async function searchSerp(
 
 /**
  * Scrape a URL via the Bright Data Web Unlocker zone and return Markdown content.
- *
- * The Web Unlocker zone handles JS rendering, CAPTCHAs, and bot protection
- * transparently. Returns the page content converted to Markdown.
  */
 export async function scrapeUrl(url: string): Promise<string> {
   const res = await fetch("https://api.brightdata.com/request", {

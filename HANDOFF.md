@@ -1,16 +1,16 @@
 # Handoff — content-pipeline-studio
-> Auto-generated on 2026-04-18 09:51 | Branch: master
+> Auto-generated on 2026-04-18 17:16 | Branch: master
 
 ## Recent Commits
+04433fc Fix pipeline E2E: Zod schemas, JSON parsing, model routing, Bright Data SERP
 d588b0e Add one-click Deploy to Vercel button and README
 07037d4 Initial commit: Content Pipeline Studio
 
 ## Uncommitted Changes
- 2 files changed, 14 insertions(+), 14 deletions(-)
+
 
 ### Modified Files
-lib/bright-data.ts
-lib/types/index.ts
+
 
 ### Staged Files
 

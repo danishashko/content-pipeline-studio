@@ -1,7 +1,7 @@
 import type { ContentBrief, SiteConfig } from "@/lib/types";
 import { ContentBriefSchema } from "@/lib/types";
-import { searchSerp, scrapeUrl } from "@/lib/bright-data";
-import { complete, RESEARCH_MODEL } from "@/lib/openrouter";
+import { discover, searchSerp, scrapeUrl } from "@/lib/bright-data";
+import { complete, resolveModel } from "@/lib/openrouter";
 import { getResearcherPrompt } from "@/lib/pipeline/prompts/researcher";
 import { parseJsonResponse } from "@/lib/pipeline/extract-json";
 
@@ -70,72 +70,106 @@ export async function executeResearch(
   keyword: string,
   siteConfig: SiteConfig,
 ): Promise<ContentBrief> {
-  console.log(`[${jobId}] Research stage started for keyword: "${keyword}"`);
+  const researchModel = resolveModel("research", siteConfig.modelConfig);
+  console.log(`[${jobId}] Research stage started for keyword: "${keyword}" (model: ${researchModel})`);
 
-  // Step 1: SERP for target keyword (top 10)
-  const serpResults = await searchSerp(keyword, { numResults: 10 });
-  console.log(`[${jobId}] SERP returned ${serpResults.length} results`);
+  // Step 1: Try Discover API first (SERP + content in one call), fall back to legacy SERP
+  let serpSection = "";
+  let competitorContent = "";
+  let statsSection = "";
+  let dataSourceContent = "";
 
-  // Step 2: Scrape top 3 competitor pages
-  const competitorUrls = serpResults.slice(0, 3).map((r) => r.url).filter(Boolean);
-  const competitorScraped = await Promise.allSettled(
-    competitorUrls.map((url) => scrapeUrl(url)),
-  );
+  try {
+    // Discover for main keyword with content included for top results
+    const [mainResults, statsResults] = await Promise.all([
+      discover(keyword, {
+        intent: `I am researching "${keyword}" for a B2B content article targeting ${siteConfig.industries.join(", ")} industries. Prioritize authoritative guides, industry reports, and data-driven analyses. Exclude thin content, listicles, and vendor promotional pages.`,
+        numResults: 10,
+        includeContent: true,
+      }),
+      discover(`${keyword} statistics data`, {
+        intent: `I need statistics, data points, and research findings about "${keyword}". Prioritize McKinsey, Deloitte, Gartner, Forrester, government (.gov), and academic (.edu) sources. Exclude news articles and opinion pieces.`,
+        numResults: 10,
+        includeContent: true,
+      }),
+    ]);
 
-  const competitorContent = competitorScraped
-    .map((result, idx) => {
-      const url = competitorUrls[idx];
-      if (result.status === "fulfilled") {
-        return `### Competitor ${idx + 1}: ${url}\n\n${result.value.slice(0, 6000)}`;
-      }
-      return `### Competitor ${idx + 1}: ${url}\n\n(scrape failed: ${result.reason})`;
-    })
-    .join("\n\n---\n\n");
+    console.log(`[${jobId}] Discover returned ${mainResults.length} main + ${statsResults.length} stats results`);
 
-  // Step 3: SERP for "[keyword] statistics"
-  const statsSerpResults = await searchSerp(`${keyword} statistics`, {
-    numResults: 10,
-  });
-  console.log(`[${jobId}] Statistics SERP returned ${statsSerpResults.length} results`);
+    serpSection = mainResults
+      .map((r, idx) => `${idx + 1}. [${r.title}](${r.link}) (relevance: ${r.relevanceScore.toFixed(2)})\n   ${r.description}`)
+      .join("\n");
 
-  // Step 4: Scrape 1-2 data source pages (prioritize authoritative domains)
-  const authoritativeDomains = [
-    "mckinsey.com",
-    "deloitte.com",
-    "gartner.com",
-    "forrester.com",
-    "hbr.org",
-    "statista.com",
-    ".gov",
-    ".edu",
-  ];
+    // Use included content for top 3 competitor pages
+    competitorContent = mainResults
+      .slice(0, 3)
+      .map((r, idx) => {
+        const content = r.content ? r.content.slice(0, 6000) : "(no content returned)";
+        return `### Competitor ${idx + 1}: ${r.link}\n\n${content}`;
+      })
+      .join("\n\n---\n\n");
 
-  const dataSourceUrls = statsSerpResults
-    .filter((r) =>
-      authoritativeDomains.some((domain) => r.url.includes(domain)),
-    )
-    .slice(0, 2)
-    .map((r) => r.url);
+    statsSection = statsResults
+      .map((r, idx) => `${idx + 1}. [${r.title}](${r.link}) (relevance: ${r.relevanceScore.toFixed(2)})\n   ${r.description}`)
+      .join("\n");
 
-  // Fall back to top 2 stats results if no authoritative sources found
-  const urlsToScrape =
-    dataSourceUrls.length > 0
+    // Use included content for data sources
+    const topDataSources = statsResults.filter((r) => r.content).slice(0, 2);
+    dataSourceContent = topDataSources
+      .map((r, idx) => `### Data Source ${idx + 1}: ${r.link}\n\n${(r.content ?? "").slice(0, 4000)}`)
+      .join("\n\n---\n\n");
+
+  } catch (discoverErr) {
+    // Fall back to legacy SERP + scrape
+    console.warn(`[${jobId}] Discover API failed, falling back to SERP: ${discoverErr instanceof Error ? discoverErr.message : discoverErr}`);
+
+    const serpResults = await searchSerp(keyword, { numResults: 10 });
+    console.log(`[${jobId}] SERP returned ${serpResults.length} results`);
+
+    serpSection = serpResults
+      .map((r) => `${r.position}. [${r.title}](${r.url})\n   ${r.description}`)
+      .join("\n");
+
+    const competitorUrls = serpResults.slice(0, 3).map((r) => r.url).filter(Boolean);
+    const competitorScraped = await Promise.allSettled(
+      competitorUrls.map((url) => scrapeUrl(url)),
+    );
+    competitorContent = competitorScraped
+      .map((result, idx) => {
+        const url = competitorUrls[idx];
+        if (result.status === "fulfilled") {
+          return `### Competitor ${idx + 1}: ${url}\n\n${result.value.slice(0, 6000)}`;
+        }
+        return `### Competitor ${idx + 1}: ${url}\n\n(scrape failed: ${result.reason})`;
+      })
+      .join("\n\n---\n\n");
+
+    const statsSerpResults = await searchSerp(`${keyword} statistics`, { numResults: 10 });
+    console.log(`[${jobId}] Statistics SERP returned ${statsSerpResults.length} results`);
+
+    statsSection = statsSerpResults
+      .map((r) => `${r.position}. [${r.title}](${r.url})\n   ${r.description}`)
+      .join("\n");
+
+    const authoritativeDomains = ["mckinsey.com", "deloitte.com", "gartner.com", "forrester.com", "hbr.org", "statista.com", ".gov", ".edu"];
+    const dataSourceUrls = statsSerpResults
+      .filter((r) => authoritativeDomains.some((d) => r.url.includes(d)))
+      .slice(0, 2)
+      .map((r) => r.url);
+    const urlsToScrape = dataSourceUrls.length > 0
       ? dataSourceUrls
       : statsSerpResults.slice(0, 2).map((r) => r.url);
-
-  const dataSourceScraped = await Promise.allSettled(
-    urlsToScrape.map((url) => scrapeUrl(url)),
-  );
-
-  const dataSourceContent = dataSourceScraped
-    .map((result, idx) => {
-      const url = urlsToScrape[idx];
-      if (result.status === "fulfilled") {
-        return `### Data Source ${idx + 1}: ${url}\n\n${result.value.slice(0, 4000)}`;
-      }
-      return `### Data Source ${idx + 1}: ${url}\n\n(scrape failed: ${result.reason})`;
-    })
-    .join("\n\n---\n\n");
+    const dataSourceScraped = await Promise.allSettled(
+      urlsToScrape.map((url) => scrapeUrl(url)),
+    );
+    dataSourceContent = dataSourceScraped
+      .map((result, idx) => {
+        const url = urlsToScrape[idx];
+        if (result.status === "fulfilled") return `### Data Source ${idx + 1}: ${url}\n\n${result.value.slice(0, 4000)}`;
+        return `### Data Source ${idx + 1}: ${url}\n\n(scrape failed: ${result.reason})`;
+      })
+      .join("\n\n---\n\n");
+  }
 
   // Step 5: Build internal site context from sitemaps if available
   let internalContext = "";
@@ -184,23 +218,13 @@ Domain: ${siteConfig.domains[0] ?? "unknown"}
 Industries: ${siteConfig.industries.join(", ")}
 
 ## SERP Results (top 10 organic)
-${serpResults
-  .map(
-    (r) =>
-      `${r.position}. [${r.title}](${r.url})\n   ${r.description}`,
-  )
-  .join("\n")}
+${serpSection}
 
 ## Competitor Full Content (top 3 scraped)
 ${competitorContent}
 
 ## Statistics SERP Results
-${statsSerpResults
-  .map(
-    (r) =>
-      `${r.position}. [${r.title}](${r.url})\n   ${r.description}`,
-  )
-  .join("\n")}
+${statsSection}
 
 ## External Data Sources (scraped)
 ${dataSourceContent}
@@ -214,9 +238,9 @@ ${siteConfig.productPages
 
 Now produce the ContentBrief JSON.`;
 
-  console.log(`[${jobId}] Calling OpenRouter (${RESEARCH_MODEL}) for research synthesis`);
+  console.log(`[${jobId}] Calling OpenRouter (${researchModel}) for research synthesis`);
   const rawResponse = await complete(systemPrompt, userPrompt, {
-    model: RESEARCH_MODEL,
+    model: researchModel,
     maxTokens: 16384,
     temperature: 0.3,
   });

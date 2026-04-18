@@ -82,6 +82,15 @@ export const SiteConfigSchema = z.object({
       quote: z.string(),
     }),
   ),
+
+  modelConfig: z
+    .object({
+      research: z.string().optional(),
+      writer: z.string().optional(),
+      validator: z.string().optional(),
+      publisher: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type SiteConfig = z.infer<typeof SiteConfigSchema>;

@@ -1,6 +1,6 @@
 import type { Article, ContentBrief, SiteConfig } from "@/lib/types";
 import { ArticleSchema } from "@/lib/types";
-import { complete, WRITER_MODEL } from "@/lib/openrouter";
+import { complete, resolveModel } from "@/lib/openrouter";
 import { getWriterPrompt } from "@/lib/pipeline/prompts/writer";
 import { parseJsonResponse } from "@/lib/pipeline/extract-json";
 
@@ -12,7 +12,8 @@ export async function executeWriter(
   brief: ContentBrief,
   siteConfig: SiteConfig,
 ): Promise<Article> {
-  console.log(`[${jobId}] Writer stage started for keyword: "${brief.targetKeyword}"`);
+  const writerModel = resolveModel("writer", siteConfig.modelConfig);
+  console.log(`[${jobId}] Writer stage started for keyword: "${brief.targetKeyword}" (model: ${writerModel})`);
 
   // Step 1: Build prompts
   const systemPrompt = getWriterPrompt(siteConfig);
@@ -62,9 +63,9 @@ ${brief.competitorInsights}
 Write the complete article now. Return only the JSON object.`;
 
   // Step 2: Call OpenRouter
-  console.log(`[${jobId}] Calling OpenRouter (${WRITER_MODEL}) for article writing`);
+  console.log(`[${jobId}] Calling OpenRouter (${writerModel}) for article writing`);
   const rawResponse = await complete(systemPrompt, userPrompt, {
-    model: WRITER_MODEL,
+    model: writerModel,
     maxTokens: 16384,
     temperature: 0.7,
     jsonMode: true,

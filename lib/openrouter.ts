@@ -10,18 +10,27 @@ const OPENROUTER_KEY = () => process.env.OPENROUTER_API_KEY ?? "";
 // Model constants
 // ---------------------------------------------------------------------------
 
-export const MODEL = {
-  RESEARCH: "moonshotai/kimi-k2.5",
-  WRITER: "deepseek/deepseek-chat-v3-0324",
-  VALIDATOR: "deepseek/deepseek-chat-v3-0324",
-  PUBLISHER: "openai/gpt-4o-mini",
+/** Default models per pipeline stage. Can be overridden per-site via modelConfig. */
+export const DEFAULT_MODELS = {
+  research: "moonshotai/kimi-k2.5",
+  writer: "deepseek/deepseek-chat-v3-0324",
+  validator: "deepseek/deepseek-chat-v3-0324",
+  publisher: "openai/gpt-4o-mini",
 } as const;
 
-// Convenience re-exports for direct use
-export const RESEARCH_MODEL = MODEL.RESEARCH;
-export const WRITER_MODEL = MODEL.WRITER;
-export const VALIDATOR_MODEL = MODEL.VALIDATOR;
-export const PUBLISHER_MODEL = MODEL.PUBLISHER;
+// Convenience re-exports (backwards compat)
+export const RESEARCH_MODEL = DEFAULT_MODELS.research;
+export const WRITER_MODEL = DEFAULT_MODELS.writer;
+export const VALIDATOR_MODEL = DEFAULT_MODELS.validator;
+export const PUBLISHER_MODEL = DEFAULT_MODELS.publisher;
+
+/** Resolve model for a stage, with site-level override taking precedence. */
+export function resolveModel(
+  stage: "research" | "writer" | "validator" | "publisher",
+  siteModelConfig?: { research?: string; writer?: string; validator?: string; publisher?: string },
+): string {
+  return siteModelConfig?.[stage] || DEFAULT_MODELS[stage];
+}
 
 // ---------------------------------------------------------------------------
 // Types
