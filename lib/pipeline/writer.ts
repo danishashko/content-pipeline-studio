@@ -2,20 +2,7 @@ import type { Article, ContentBrief, SiteConfig } from "@/lib/types";
 import { ArticleSchema } from "@/lib/types";
 import { complete, WRITER_MODEL } from "@/lib/openrouter";
 import { getWriterPrompt } from "@/lib/pipeline/prompts/writer";
-
-/**
- * Extracts JSON from a model response that may contain markdown fences.
- */
-function extractJson(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) return fenced[1].trim();
-  const braceStart = text.indexOf("{");
-  const braceEnd = text.lastIndexOf("}");
-  if (braceStart !== -1 && braceEnd > braceStart) {
-    return text.slice(braceStart, braceEnd + 1);
-  }
-  return text.trim();
-}
+import { parseJsonResponse } from "@/lib/pipeline/extract-json";
 
 /**
  * Writer stage: takes a ContentBrief and writes a full Article using Claude Sonnet.
@@ -78,13 +65,13 @@ Write the complete article now. Return only the JSON object.`;
   console.log(`[${jobId}] Calling OpenRouter (${WRITER_MODEL}) for article writing`);
   const rawResponse = await complete(systemPrompt, userPrompt, {
     model: WRITER_MODEL,
-    maxTokens: 8192,
+    maxTokens: 16384,
     temperature: 0.7,
+    jsonMode: true,
   });
 
   // Step 3: Parse as Article
-  const jsonString = extractJson(rawResponse);
-  const parsed = JSON.parse(jsonString) as unknown;
+  const parsed = parseJsonResponse(rawResponse);
   const article = ArticleSchema.parse(parsed);
 
   console.log(

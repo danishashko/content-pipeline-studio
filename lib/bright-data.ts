@@ -3,6 +3,8 @@
  */
 
 const BRIGHT_DATA_KEY = () => process.env.BRIGHT_DATA_API_KEY ?? "";
+const BRIGHT_DATA_SERP_ZONE = () => process.env.BRIGHT_DATA_SERP_ZONE ?? "serp_api";
+const BRIGHT_DATA_UNLOCKER_ZONE = () => process.env.BRIGHT_DATA_UNLOCKER_ZONE ?? "web_unlocker1";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,21 +38,19 @@ export async function searchSerp(
 ): Promise<SerpResult[]> {
   const { country = "us", numResults = 10 } = options;
 
-  const params = new URLSearchParams({
-    engine: "google",
-    q: query,
-    gl: country,
-    num: String(numResults),
-  });
-
   const res = await fetch(
-    `https://api.brightdata.com/serp/req?${params.toString()}`,
+    "https://api.brightdata.com/request",
     {
-      method: "GET",
+      method: "POST",
       headers: {
         Authorization: `Bearer ${BRIGHT_DATA_KEY()}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        zone: BRIGHT_DATA_SERP_ZONE(),
+        url: `https://www.google.com/search?q=${encodeURIComponent(query)}&gl=${country}&num=${numResults}`,
+        format: "json",
+      }),
     },
   );
 
@@ -59,20 +59,51 @@ export async function searchSerp(
     throw new Error(`Bright Data SERP error (${res.status}): ${text}`);
   }
 
-  const data = (await res.json()) as {
-    organic?: {
-      rank?: number;
-      title?: string;
-      link?: string;
-      description?: string;
-    }[];
-  };
+  const raw = await res.text();
 
-  return (data.organic ?? []).map((item, idx) => ({
-    position: item.rank ?? idx + 1,
-    title: item.title ?? "",
-    url: item.link ?? "",
-    description: item.description ?? "",
+  // Bright Data SERP zones may return HTML, JSON, or wrapped JSON.
+  // Try to parse as JSON first; if it fails, return empty results.
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    console.warn(`[SERP] Response is not JSON (${raw.length} chars). First 200: ${raw.slice(0, 200)}`);
+    return [];
+  }
+
+  // The /request endpoint wraps responses in { status_code, headers, body }.
+  // Unwrap if we detect that structure. Body may be an object or a JSON string.
+  if (data.status_code !== undefined && data.body !== undefined) {
+    if (typeof data.body === "string") {
+      try {
+        data = JSON.parse(data.body) as Record<string, unknown>;
+      } catch {
+        console.warn(`[SERP] body is a non-JSON string (${(data.body as string).length} chars). First 200: ${(data.body as string).slice(0, 200)}`);
+        return [];
+      }
+    } else if (typeof data.body === "object" && data.body !== null) {
+      data = data.body as Record<string, unknown>;
+    }
+  }
+
+  // Different zones use different response shapes.
+  // Try common field names for organic results.
+  const organic = (
+    data.organic ??
+    data.results ??
+    data.organic_results ??
+    []
+  ) as Record<string, unknown>[];
+
+  if (organic.length === 0) {
+    console.warn(`[SERP] No organic results found. Response keys: ${Object.keys(data).join(", ")}`);
+  }
+
+  return organic.map((item, idx) => ({
+    position: (item.rank ?? item.position ?? idx + 1) as number,
+    title: (item.title ?? "") as string,
+    url: (item.link ?? item.url ?? "") as string,
+    description: (item.description ?? item.snippet ?? "") as string,
   }));
 }
 
@@ -94,7 +125,7 @@ export async function scrapeUrl(url: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      zone: "web_unlocker1",
+      zone: BRIGHT_DATA_UNLOCKER_ZONE(),
       url,
       format: "markdown",
     }),

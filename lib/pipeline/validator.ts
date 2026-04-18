@@ -2,20 +2,7 @@ import type { Article, SiteConfig } from "@/lib/types";
 import { ArticleSchema } from "@/lib/types";
 import { complete, VALIDATOR_MODEL } from "@/lib/openrouter";
 import { getValidatorPrompt } from "@/lib/pipeline/prompts/validator";
-
-/**
- * Extracts JSON from a model response that may contain markdown fences.
- */
-function extractJson(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) return fenced[1].trim();
-  const braceStart = text.indexOf("{");
-  const braceEnd = text.lastIndexOf("}");
-  if (braceStart !== -1 && braceEnd > braceStart) {
-    return text.slice(braceStart, braceEnd + 1);
-  }
-  return text.trim();
-}
+import { parseJsonResponse } from "@/lib/pipeline/extract-json";
 
 /**
  * Validator stage: runs all 27 quality checks on an Article via Claude Sonnet
@@ -66,23 +53,21 @@ Run all 27 checks. Fix violations. Return the corrected article JSON with a vali
   );
   const rawResponse = await complete(systemPrompt, userPrompt, {
     model: VALIDATOR_MODEL,
-    maxTokens: 8192,
+    maxTokens: 16384,
     temperature: 0.2,
+    jsonMode: true,
   });
 
   // Step 4: Parse as validated Article
-  const jsonString = extractJson(rawResponse);
-  const parsed = JSON.parse(jsonString) as unknown;
+  const normalized = parseJsonResponse<Record<string, unknown>>(rawResponse);
 
   // The validator may return validationReport (camelCase) or validation_report (snake_case)
-  // Normalize before parsing
-  const normalized = JSON.parse(jsonString) as Record<string, unknown>;
   if (!normalized.validationReport && normalized.validation_report) {
     normalized.validationReport = normalized.validation_report;
     delete normalized.validation_report;
   }
 
-  const validatedArticle = ArticleSchema.parse(parsed);
+  const validatedArticle = ArticleSchema.parse(normalized);
 
   console.log(
     `[${jobId}] Validator stage complete. Report: ${validatedArticle.validationReport?.slice(0, 100) ?? "(none)"}...`,

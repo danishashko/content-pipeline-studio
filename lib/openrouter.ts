@@ -12,8 +12,8 @@ const OPENROUTER_KEY = () => process.env.OPENROUTER_API_KEY ?? "";
 
 export const MODEL = {
   RESEARCH: "moonshotai/kimi-k2.5",
-  WRITER: "anthropic/claude-sonnet-4-6",
-  VALIDATOR: "anthropic/claude-sonnet-4-6",
+  WRITER: "deepseek/deepseek-chat-v3-0324",
+  VALIDATOR: "deepseek/deepseek-chat-v3-0324",
   PUBLISHER: "openai/gpt-4o-mini",
 } as const;
 
@@ -31,6 +31,7 @@ export interface LLMOptions {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  jsonMode?: boolean;
 }
 
 type ChatMessage = { role: string; content: string };
@@ -39,6 +40,7 @@ const DEFAULTS: Required<LLMOptions> = {
   model: RESEARCH_MODEL,
   maxTokens: 4096,
   temperature: 0.3,
+  jsonMode: false,
 };
 
 const SHARED_HEADERS = {
@@ -71,6 +73,7 @@ export async function complete(
       model: config.model,
       max_tokens: config.maxTokens,
       temperature: config.temperature,
+      ...(opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

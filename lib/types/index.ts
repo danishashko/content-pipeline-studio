@@ -42,14 +42,14 @@ export const SiteConfigSchema = z.object({
 
   productPages: z.array(
     z.object({
-      url: z.string().url(),
+      url: z.string().min(1),
       title: z.string(),
       description: z.string(),
     }),
   ),
 
   cta: z.object({
-    url: z.string().url(),
+    url: z.string().min(1),
     defaultText: z.string(),
     fallbackSentence: z.string().optional(),
   }),
@@ -107,7 +107,7 @@ export const ContentBriefSchema = z.object({
 
   internalLinks: z.array(
     z.object({
-      url: z.string().url(),
+      url: z.string().min(1),
       pageTitle: z.string(),
       suggestedAnchors: z.array(z.string()),
       context: z.string(),
@@ -166,7 +166,7 @@ export const ArticleSchema = z.object({
 
   internalLinksUsed: z.array(
     z.object({
-      url: z.string().url(),
+      url: z.string().min(1),
       anchorText: z.string(),
     }),
   ),

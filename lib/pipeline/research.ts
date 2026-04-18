@@ -3,6 +3,7 @@ import { ContentBriefSchema } from "@/lib/types";
 import { searchSerp, scrapeUrl } from "@/lib/bright-data";
 import { complete, RESEARCH_MODEL } from "@/lib/openrouter";
 import { getResearcherPrompt } from "@/lib/pipeline/prompts/researcher";
+import { parseJsonResponse } from "@/lib/pipeline/extract-json";
 
 interface SitemapEntry {
   loc: string;
@@ -59,20 +60,6 @@ function parseSitemap(xml: string, baseDomain: string, limit = 50): SitemapEntry
   return entries.slice(0, limit);
 }
 
-/**
- * Extracts JSON from a model response that may contain markdown fences
- * or surrounding prose.
- */
-function extractJson(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) return fenced[1].trim();
-  const braceStart = text.indexOf("{");
-  const braceEnd = text.lastIndexOf("}");
-  if (braceStart !== -1 && braceEnd > braceStart) {
-    return text.slice(braceStart, braceEnd + 1);
-  }
-  return text.trim();
-}
 
 /**
  * Research stage: searches SERP, scrapes competitors and data sources,
@@ -230,13 +217,12 @@ Now produce the ContentBrief JSON.`;
   console.log(`[${jobId}] Calling OpenRouter (${RESEARCH_MODEL}) for research synthesis`);
   const rawResponse = await complete(systemPrompt, userPrompt, {
     model: RESEARCH_MODEL,
-    maxTokens: 4096,
+    maxTokens: 16384,
     temperature: 0.3,
   });
 
   // Step 7: Parse as ContentBrief
-  const jsonString = extractJson(rawResponse);
-  const parsed = JSON.parse(jsonString) as unknown;
+  const parsed = parseJsonResponse(rawResponse);
   const brief = ContentBriefSchema.parse(parsed);
 
   console.log(`[${jobId}] Research stage complete. Title: "${brief.recommendedTitle}"`);
