@@ -12,8 +12,11 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("jobs")
-      .select("id, site_id, keyword_id, status, completed_at, validated_output")
-      .eq("status", "completed")
+      .select(
+        "id, site_id, keyword_id, status, completed_at, validated_output, " +
+          "keywords(keyword, sites(config))",
+      )
+      .or("status.eq.completed,validated_output.not.is.null")
       .order("completed_at", { ascending: false })
       .limit(limit);
 
@@ -32,15 +35,35 @@ export async function GET(request: NextRequest) {
     const articles = rows.map((row) => {
       const validatedOutput = row.validated_output as {
         metadata?: { title?: string };
+        markdownContent?: string;
       } | null;
+
+      // Extract keyword name from joined keywords table
+      const keywordsRaw = row.keywords;
+      const keywordRecord = Array.isArray(keywordsRaw) ? keywordsRaw[0] : keywordsRaw;
+      const keywordName: string | null = keywordRecord?.keyword ?? null;
+
+      // Extract site name from nested sites config
+      const sitesRaw = keywordRecord?.sites;
+      const siteRecord = Array.isArray(sitesRaw) ? sitesRaw[0] : sitesRaw;
+      const siteConfig = siteRecord?.config as { companyName?: string } | null;
+      const siteName: string | null = siteConfig?.companyName ?? null;
+
+      // Count words in markdown content
+      const markdownContent = validatedOutput?.markdownContent ?? "";
+      const wordCount = markdownContent
+        ? markdownContent.trim().split(/\s+/).filter(Boolean).length
+        : 0;
 
       return {
         id: row.id,
-        keyword: null as string | null,
-        siteName: null as string | null,
+        keyword: keywordName,
+        siteName,
+        siteId: row.site_id,
         title: validatedOutput?.metadata?.title ?? null,
         status: row.status,
         completedAt: row.completed_at,
+        wordCount,
       };
     });
 

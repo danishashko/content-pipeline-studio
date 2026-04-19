@@ -21,7 +21,7 @@ interface FaqItem {
 
 interface ResearchBrief {
   outline?: string[];
-  competitorInsights?: string[];
+  competitorInsights?: string[] | string;
   externalSources?: { url: string; title?: string }[];
   targetKeyword?: string;
   recommendedTitle?: string;
@@ -708,16 +708,22 @@ export default function ArticleDetailPage() {
               </div>
             )}
 
-            {research.competitorInsights && research.competitorInsights.length > 0 && (
+            {research.competitorInsights && (
               <div>
                 <h4 style={{ fontSize: "11px", fontWeight: 700, color: "var(--th-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>
                   Competitor Insights
                 </h4>
-                <ul style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  {research.competitorInsights.map((item, i) => (
-                    <li key={i} style={{ fontSize: "13px", color: "var(--th-text-secondary)", lineHeight: 1.5 }}>{item}</li>
-                  ))}
-                </ul>
+                {Array.isArray(research.competitorInsights) ? (
+                  <ul style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {research.competitorInsights.map((item, i) => (
+                      <li key={i} style={{ fontSize: "13px", color: "var(--th-text-secondary)", lineHeight: 1.5 }}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ fontSize: "13px", color: "var(--th-text-secondary)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>
+                    {String(research.competitorInsights)}
+                  </p>
+                )}
               </div>
             )}
 

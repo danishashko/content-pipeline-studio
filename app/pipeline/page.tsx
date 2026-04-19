@@ -149,13 +149,23 @@ export default function PipelinePage() {
     };
   }, [loadJobs]);
 
-  async function loadJobDetail(jobId: string) {
-    setDetailLoading(jobId);
+  async function loadJobDetail(keywordId: string) {
+    setDetailLoading(keywordId);
     try {
-      const res = await fetch(`/api/pipeline/status/${jobId}`);
+      const res = await fetch(`/api/pipeline/status/${keywordId}?by=keyword`);
       if (res.ok) {
         const data = await res.json();
-        setJobDetails((prev) => ({ ...prev, [jobId]: data }));
+        const j = data.job;
+        if (j) {
+          const detail: JobDetail = {
+            stageProgress: j.stage_progress ?? {},
+            currentStage: j.current_stage,
+            error: j.error,
+            researchOutput: j.research_output,
+            articleOutput: j.validated_output ?? j.article_output,
+          };
+          setJobDetails((prev) => ({ ...prev, [keywordId]: detail }));
+        }
       }
     } catch {
       // ignore

@@ -222,28 +222,46 @@ export async function runPipeline(keywordId: string): Promise<void> {
     });
 
     // -----------------------------------------------------------------------
-    // Stage 4: Publish
+    // Stage 4: Publish (optional - skipped if WP credentials are not set)
     // -----------------------------------------------------------------------
-    await updateJob({ current_stage: "publish", status: "publishing" });
-    await updateKeywordStatus("publishing");
+    if (siteConfig.wpUsername && siteConfig.wpAppPassword) {
+      await updateJob({ current_stage: "publish", status: "publishing" });
+      await updateKeywordStatus("publishing");
 
-    const publishResult = await executePublisher(
-      jobId,
-      validatedOutput,
-      siteConfig,
-    );
+      const publishResult = await executePublisher(
+        jobId,
+        validatedOutput,
+        siteConfig,
+      );
 
-    await updateJob({
-      publish_result: publishResult,
-      stage_progress: {
-        research: "completed",
-        write: "completed",
-        validate: "completed",
-        publish: "completed",
-      },
-      status: "completed",
-      completed_at: new Date().toISOString(),
-    });
+      await updateJob({
+        publish_result: publishResult,
+        stage_progress: {
+          research: "completed",
+          write: "completed",
+          validate: "completed",
+          publish: "completed",
+        },
+        status: "completed",
+        completed_at: new Date().toISOString(),
+      });
+    } else {
+      console.log(
+        `[${jobId}] Skipping publish stage: WordPress credentials not configured for site "${siteConfig.slug}"`,
+      );
+
+      await updateJob({
+        publish_result: null,
+        stage_progress: {
+          research: "completed",
+          write: "completed",
+          validate: "completed",
+          publish: "skipped",
+        },
+        status: "completed",
+        completed_at: new Date().toISOString(),
+      });
+    }
 
     await updateKeywordStatus("completed");
   } catch (err) {
