@@ -24,14 +24,45 @@ interface JobActivity {
   error?: string;
 }
 
-const STATUS_COLORS: Record<string, { bg: string; color: string; label: string }> = {
-  pending: { bg: "var(--th-inset)", color: "var(--th-text-muted)", label: "Pending" },
-  researching: { bg: "var(--th-stage-research-soft)", color: "var(--th-stage-research)", label: "Researching" },
-  writing: { bg: "var(--th-stage-write-soft)", color: "var(--th-stage-write)", label: "Writing" },
-  validating: { bg: "var(--th-stage-validate-soft)", color: "var(--th-stage-validate)", label: "Validating" },
-  publishing: { bg: "var(--th-stage-publish-soft)", color: "var(--th-stage-publish)", label: "Publishing" },
-  completed: { bg: "var(--th-success-soft)", color: "var(--th-success)", label: "Completed" },
-  failed: { bg: "var(--th-danger-soft)", color: "var(--th-danger)", label: "Failed" },
+const STATUS_COLORS: Record<
+  string,
+  { bg: string; color: string; label: string }
+> = {
+  pending: {
+    bg: "var(--th-inset)",
+    color: "var(--th-text-muted)",
+    label: "Pending",
+  },
+  researching: {
+    bg: "var(--th-stage-research-soft)",
+    color: "var(--th-stage-research)",
+    label: "Researching",
+  },
+  writing: {
+    bg: "var(--th-stage-write-soft)",
+    color: "var(--th-stage-write)",
+    label: "Writing",
+  },
+  validating: {
+    bg: "var(--th-stage-validate-soft)",
+    color: "var(--th-stage-validate)",
+    label: "Validating",
+  },
+  publishing: {
+    bg: "var(--th-stage-publish-soft)",
+    color: "var(--th-stage-publish)",
+    label: "Publishing",
+  },
+  completed: {
+    bg: "var(--th-success-soft)",
+    color: "var(--th-success)",
+    label: "Completed",
+  },
+  failed: {
+    bg: "var(--th-danger-soft)",
+    color: "var(--th-danger)",
+    label: "Failed",
+  },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -51,8 +82,20 @@ function StatusBadge({ status }: { status: string }) {
         textTransform: "capitalize",
       }}
     >
-      {status === "researching" || status === "writing" || status === "validating" || status === "publishing" ? (
-        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: cfg.color, animation: "pulse 2s infinite", flexShrink: 0 }} />
+      {status === "researching" ||
+      status === "writing" ||
+      status === "validating" ||
+      status === "publishing" ? (
+        <span
+          style={{
+            width: "6px",
+            height: "6px",
+            borderRadius: "50%",
+            background: cfg.color,
+            animation: "pulse 2s infinite",
+            flexShrink: 0,
+          }}
+        />
       ) : null}
       {cfg.label}
     </span>
@@ -64,7 +107,14 @@ function SkeletonRow({ cols }: { cols: number }) {
     <tr>
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} style={{ padding: "14px 16px" }}>
-          <div className="skeleton" style={{ height: "14px", width: i === 0 ? "60%" : "40%", borderRadius: "4px" }} />
+          <div
+            className="skeleton"
+            style={{
+              height: "14px",
+              width: i === 0 ? "60%" : "40%",
+              borderRadius: "4px",
+            }}
+          />
         </td>
       ))}
     </tr>
@@ -79,7 +129,13 @@ const STAGE_COLORS: Record<string, string> = {
   publish: "var(--th-stage-publish)",
 };
 
-function MiniStageProgress({ stageProgress, currentStage }: { stageProgress: Record<string, string>; currentStage?: string }) {
+function MiniStageProgress({
+  stageProgress,
+  currentStage,
+}: {
+  stageProgress: Record<string, string>;
+  currentStage?: string;
+}) {
   return (
     <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
       {STAGES.map((stage) => {
@@ -94,7 +150,11 @@ function MiniStageProgress({ stageProgress, currentStage }: { stageProgress: Rec
               width: "24px",
               height: "6px",
               borderRadius: "3px",
-              background: isCompleted ? color : isCurrent ? color : "var(--th-inset)",
+              background: isCompleted
+                ? color
+                : isCurrent
+                  ? color
+                  : "var(--th-inset)",
               opacity: isCurrent && !isCompleted ? 0.6 : 1,
               transition: "all 0.3s ease",
             }}
@@ -107,7 +167,12 @@ function MiniStageProgress({ stageProgress, currentStage }: { stageProgress: Rec
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ sites: 0, queued: 0, completed: 0, active: 0 });
+  const [stats, setStats] = useState({
+    sites: 0,
+    queued: 0,
+    completed: 0,
+    active: 0,
+  });
   const [articles, setArticles] = useState<ArticleRow[]>([]);
   const [jobs, setJobs] = useState<JobActivity[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +195,9 @@ export default function DashboardPage() {
 
         if (sitesRes.status === "fulfilled" && sitesRes.value.ok) {
           const data = await sitesRes.value.json();
-          sitesCount = Array.isArray(data) ? data.length : (data.sites?.length ?? 0);
+          sitesCount = Array.isArray(data)
+            ? data.length
+            : (data.sites?.length ?? 0);
         }
 
         if (keywordsRes.status === "fulfilled" && keywordsRes.value.ok) {
@@ -138,43 +205,80 @@ export default function DashboardPage() {
           const arr = Array.isArray(data) ? data : (data.keywords ?? []);
           queuedCount = arr.length;
           activeCount = arr.filter((k: { status: string }) =>
-            ["researching", "writing", "validating", "publishing"].includes(k.status)
+            ["researching", "writing", "validating", "publishing"].includes(
+              k.status,
+            ),
           ).length;
           jobRows = arr
-            .filter((k: { status: string }) => ["researching", "writing", "validating", "publishing"].includes(k.status))
+            .filter((k: { status: string }) =>
+              ["researching", "writing", "validating", "publishing"].includes(
+                k.status,
+              ),
+            )
             .slice(0, 5)
-            .map((k: { id: string; keyword: string; site?: string; status: string; currentStage?: string; stageProgress?: Record<string, string>; startedAt?: string; error?: string }) => ({
-              id: k.id,
-              keyword: k.keyword,
-              site: k.site ?? "—",
-              status: k.status,
-              currentStage: k.currentStage,
-              stageProgress: k.stageProgress ?? {},
-              startedAt: k.startedAt,
-              error: k.error,
-            }));
+            .map(
+              (k: {
+                id: string;
+                keyword: string;
+                site?: string;
+                status: string;
+                currentStage?: string;
+                stageProgress?: Record<string, string>;
+                startedAt?: string;
+                error?: string;
+              }) => ({
+                id: k.id,
+                keyword: k.keyword,
+                site: k.site ?? "—",
+                status: k.status,
+                currentStage: k.currentStage,
+                stageProgress: k.stageProgress ?? {},
+                startedAt: k.startedAt,
+                error: k.error,
+              }),
+            );
         }
 
         if (articlesRes.status === "fulfilled" && articlesRes.value.ok) {
           const data = await articlesRes.value.json();
           const arr = Array.isArray(data) ? data : (data.articles ?? []);
           completedCount = arr.length;
-          articleRows = arr.map((a: { id: string; title?: string; metadata?: { title?: string }; site?: string; keyword?: string; status?: string; wordCount?: number; word_count?: number; createdAt?: string; created_at?: string }) => ({
-            id: a.id,
-            title: a.title ?? a.metadata?.title ?? "Untitled",
-            site: a.site ?? "—",
-            keyword: a.keyword ?? "—",
-            status: a.status ?? "completed",
-            wordCount: a.wordCount ?? a.word_count ?? 0,
-            createdAt: a.createdAt ?? a.created_at ?? "",
-          }));
+          articleRows = arr.map(
+            (a: {
+              id: string;
+              title?: string;
+              metadata?: { title?: string };
+              site?: string;
+              keyword?: string;
+              status?: string;
+              wordCount?: number;
+              word_count?: number;
+              createdAt?: string;
+              created_at?: string;
+            }) => ({
+              id: a.id,
+              title: a.title ?? a.metadata?.title ?? "Untitled",
+              site: a.site ?? "—",
+              keyword: a.keyword ?? "—",
+              status: a.status ?? "completed",
+              wordCount: a.wordCount ?? a.word_count ?? 0,
+              createdAt: a.createdAt ?? a.created_at ?? "",
+            }),
+          );
         }
 
-        setStats({ sites: sitesCount, queued: queuedCount, completed: completedCount, active: activeCount });
+        setStats({
+          sites: sitesCount,
+          queued: queuedCount,
+          completed: completedCount,
+          active: activeCount,
+        });
         setArticles(articleRows);
         setJobs(jobRows);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
+        setError(
+          err instanceof Error ? err.message : "Failed to load dashboard",
+        );
       } finally {
         setLoading(false);
       }
@@ -186,7 +290,11 @@ export default function DashboardPage() {
   function formatDate(dateStr: string) {
     if (!dateStr) return "—";
     try {
-      return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      return new Date(dateStr).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
     } catch {
       return "—";
     }
@@ -196,28 +304,143 @@ export default function DashboardPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       {/* Page header */}
       <div>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--th-text)", margin: 0, lineHeight: 1.2 }}>
+        <h1
+          style={{
+            fontSize: "24px",
+            fontWeight: 700,
+            color: "var(--th-text)",
+            margin: 0,
+            lineHeight: 1.2,
+          }}
+        >
           Dashboard
         </h1>
-        <p style={{ fontSize: "14px", color: "var(--th-text-secondary)", margin: "6px 0 0", lineHeight: 1.5 }}>
+        <p
+          style={{
+            fontSize: "14px",
+            color: "var(--th-text-secondary)",
+            margin: "6px 0 0",
+            lineHeight: 1.5,
+          }}
+        >
           Content pipeline overview
         </p>
       </div>
 
+      {/* Bright Data banner */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #092349 0%, #0a1628 100%)",
+          border: "1px solid rgba(118, 165, 255, 0.2)",
+          borderRadius: "12px",
+          padding: "20px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: "15px",
+              fontWeight: 600,
+              color: "white",
+              marginBottom: "4px",
+            }}
+          >
+            Built with Bright Data&apos;s Discover API, SERP API, and Web
+            Unlocker
+          </div>
+          <div
+            style={{
+              fontSize: "13px",
+              color: "rgba(255,255,255,0.55)",
+              lineHeight: 1.5,
+            }}
+          >
+            Real-time web data powering every research stage of this content
+            pipeline.
+          </div>
+        </div>
+        <a
+          href="https://brightdata.com/cp/start?utm_source=content-pipeline-studio&utm_medium=demo&utm_campaign=content-system-bd"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            background: "#76A5FF",
+            color: "#0a1628",
+            fontSize: "13px",
+            fontWeight: 700,
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            transition: "background 0.15s ease",
+          }}
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLAnchorElement).style.background =
+              "#9bbcff")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLAnchorElement).style.background =
+              "#76A5FF")
+          }
+        >
+          Get Your API Key
+        </a>
+      </div>
+
       {error && (
-        <div style={{ padding: "12px 16px", borderRadius: "8px", background: "var(--th-danger-soft)", color: "var(--th-danger)", fontSize: "14px" }}>
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: "8px",
+            background: "var(--th-danger-soft)",
+            color: "var(--th-danger)",
+            fontSize: "14px",
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Stats */}
       {loading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: "16px",
+          }}
+        >
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="card" style={{ padding: "20px" }}>
-              <div className="skeleton" style={{ width: "40px", height: "40px", borderRadius: "10px", marginBottom: "16px" }} />
-              <div className="skeleton" style={{ width: "60px", height: "32px", borderRadius: "4px", marginBottom: "8px" }} />
-              <div className="skeleton" style={{ width: "100px", height: "14px", borderRadius: "4px" }} />
+              <div
+                className="skeleton"
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "10px",
+                  marginBottom: "16px",
+                }}
+              />
+              <div
+                className="skeleton"
+                style={{
+                  width: "60px",
+                  height: "32px",
+                  borderRadius: "4px",
+                  marginBottom: "8px",
+                }}
+              />
+              <div
+                className="skeleton"
+                style={{ width: "100px", height: "14px", borderRadius: "4px" }}
+              />
             </div>
           ))}
         </div>
@@ -230,17 +453,53 @@ export default function DashboardPage() {
         />
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "20px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 380px",
+          gap: "20px",
+        }}
+      >
         {/* Recent Articles */}
         <div className="card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--th-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div
+            style={{
+              padding: "20px 24px",
+              borderBottom: "1px solid var(--th-border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <div>
-              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "var(--th-text)", margin: 0 }}>Recent Articles</h2>
-              <p style={{ fontSize: "12px", color: "var(--th-text-muted)", margin: "2px 0 0" }}>Last 10 generated</p>
+              <h2
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  color: "var(--th-text)",
+                  margin: 0,
+                }}
+              >
+                Recent Articles
+              </h2>
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "var(--th-text-muted)",
+                  margin: "2px 0 0",
+                }}
+              >
+                Last 10 generated
+              </p>
             </div>
             <a
               href="/articles"
-              style={{ fontSize: "13px", color: "var(--th-text-accent)", textDecoration: "none", fontWeight: 500 }}
+              style={{
+                fontSize: "13px",
+                color: "var(--th-text-accent)",
+                textDecoration: "none",
+                fontWeight: 500,
+              }}
             >
               View all
             </a>
@@ -270,10 +529,20 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={5} />)
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <SkeletonRow key={i} cols={5} />
+                  ))
                 ) : articles.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: "40px 16px", textAlign: "center", color: "var(--th-text-muted)", fontSize: "14px" }}>
+                    <td
+                      colSpan={5}
+                      style={{
+                        padding: "40px 16px",
+                        textAlign: "center",
+                        color: "var(--th-text-muted)",
+                        fontSize: "14px",
+                      }}
+                    >
                       No articles yet. Add keywords to the queue to get started.
                     </td>
                   </tr>
@@ -282,11 +551,17 @@ export default function DashboardPage() {
                     <tr
                       key={article.id}
                       style={{
-                        borderTop: idx > 0 ? "1px solid var(--th-border)" : "none",
+                        borderTop:
+                          idx > 0 ? "1px solid var(--th-border)" : "none",
                         transition: "background 0.1s ease",
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "var(--th-card-hover)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                          "var(--th-card-hover)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
                     >
                       <td style={{ padding: "12px 16px", maxWidth: "220px" }}>
                         <a
@@ -305,12 +580,41 @@ export default function DashboardPage() {
                           {article.title}
                         </a>
                       </td>
-                      <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-secondary)", whiteSpace: "nowrap" }}>{article.site}</td>
-                      <td style={{ padding: "12px 16px" }}><StatusBadge status={article.status} /></td>
-                      <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-secondary)", whiteSpace: "nowrap" }}>
-                        {article.wordCount > 0 ? article.wordCount.toLocaleString() : "—"}
+                      <td
+                        style={{
+                          padding: "12px 16px",
+                          fontSize: "12px",
+                          color: "var(--th-text-secondary)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {article.site}
                       </td>
-                      <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-muted)", whiteSpace: "nowrap" }}>{formatDate(article.createdAt)}</td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <StatusBadge status={article.status} />
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px 16px",
+                          fontSize: "12px",
+                          color: "var(--th-text-secondary)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {article.wordCount > 0
+                          ? article.wordCount.toLocaleString()
+                          : "—"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "12px 16px",
+                          fontSize: "12px",
+                          color: "var(--th-text-muted)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {formatDate(article.createdAt)}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -321,28 +625,103 @@ export default function DashboardPage() {
 
         {/* Pipeline Activity */}
         <div className="card" style={{ overflow: "hidden" }}>
-          <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--th-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div
+            style={{
+              padding: "20px 24px",
+              borderBottom: "1px solid var(--th-border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <div>
-              <h2 style={{ fontSize: "15px", fontWeight: 600, color: "var(--th-text)", margin: 0 }}>Pipeline Activity</h2>
-              <p style={{ fontSize: "12px", color: "var(--th-text-muted)", margin: "2px 0 0" }}>Active jobs</p>
+              <h2
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  color: "var(--th-text)",
+                  margin: 0,
+                }}
+              >
+                Pipeline Activity
+              </h2>
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "var(--th-text-muted)",
+                  margin: "2px 0 0",
+                }}
+              >
+                Active jobs
+              </p>
             </div>
-            <a href="/pipeline" style={{ fontSize: "13px", color: "var(--th-text-accent)", textDecoration: "none", fontWeight: 500 }}>
+            <a
+              href="/pipeline"
+              style={{
+                fontSize: "13px",
+                color: "var(--th-text-accent)",
+                textDecoration: "none",
+                fontWeight: 500,
+              }}
+            >
               Monitor
             </a>
           </div>
           <div style={{ padding: "8px 0" }}>
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} style={{ padding: "16px 24px", borderBottom: "1px solid var(--th-border)" }}>
-                  <div className="skeleton" style={{ width: "60%", height: "14px", borderRadius: "4px", marginBottom: "8px" }} />
-                  <div className="skeleton" style={{ width: "100%", height: "8px", borderRadius: "4px" }} />
+                <div
+                  key={i}
+                  style={{
+                    padding: "16px 24px",
+                    borderBottom: "1px solid var(--th-border)",
+                  }}
+                >
+                  <div
+                    className="skeleton"
+                    style={{
+                      width: "60%",
+                      height: "14px",
+                      borderRadius: "4px",
+                      marginBottom: "8px",
+                    }}
+                  />
+                  <div
+                    className="skeleton"
+                    style={{
+                      width: "100%",
+                      height: "8px",
+                      borderRadius: "4px",
+                    }}
+                  />
                 </div>
               ))
             ) : jobs.length === 0 ? (
-              <div style={{ padding: "40px 24px", textAlign: "center", color: "var(--th-text-muted)", fontSize: "14px" }}>
+              <div
+                style={{
+                  padding: "40px 24px",
+                  textAlign: "center",
+                  color: "var(--th-text-muted)",
+                  fontSize: "14px",
+                }}
+              >
                 <div style={{ fontSize: "32px", marginBottom: "12px" }}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--th-text-muted)", margin: "0 auto", display: "block" }}>
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      color: "var(--th-text-muted)",
+                      margin: "0 auto",
+                      display: "block",
+                    }}
+                  >
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                   </svg>
                 </div>
                 No active jobs
@@ -353,23 +732,54 @@ export default function DashboardPage() {
                   key={job.id}
                   style={{
                     padding: "14px 24px",
-                    borderBottom: idx < jobs.length - 1 ? "1px solid var(--th-border)" : "none",
+                    borderBottom:
+                      idx < jobs.length - 1
+                        ? "1px solid var(--th-border)"
+                        : "none",
                     transition: "background 0.1s ease",
                     cursor: "pointer",
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "var(--th-card-hover)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "var(--th-card-hover)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--th-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "180px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "var(--th-text)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "180px",
+                      }}
+                    >
                       {job.keyword}
                     </span>
                     <StatusBadge status={job.status} />
                   </div>
                   <div style={{ marginBottom: "6px" }}>
-                    <MiniStageProgress stageProgress={job.stageProgress} currentStage={job.currentStage} />
+                    <MiniStageProgress
+                      stageProgress={job.stageProgress}
+                      currentStage={job.currentStage}
+                    />
                   </div>
-                  <div style={{ fontSize: "11px", color: "var(--th-text-muted)" }}>{job.site}</div>
+                  <div
+                    style={{ fontSize: "11px", color: "var(--th-text-muted)" }}
+                  >
+                    {job.site}
+                  </div>
                 </div>
               ))
             )}

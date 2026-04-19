@@ -27,16 +27,32 @@ interface Article {
 
 function formatDate(d?: string) {
   if (!d) return "—";
-  try { return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
-  catch { return "—"; }
+  try {
+    return new Date(d).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
 }
 
 function ExportIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="7 10 12 15 17 10"/>
-      <line x1="12" y1="15" x2="12" y2="3"/>
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   );
 }
@@ -50,11 +66,16 @@ export default function ArticlesPage() {
   const [search, setSearch] = useState("");
 
   const siteMap: Record<string, string> = {};
-  sites.forEach((s) => { siteMap[s.id] = s.companyName; });
+  sites.forEach((s) => {
+    siteMap[s.id] = s.companyName;
+  });
 
   const loadData = useCallback(async () => {
     try {
-      const url = siteFilter !== "all" ? `/api/articles?siteId=${siteFilter}` : "/api/articles";
+      const url =
+        siteFilter !== "all"
+          ? `/api/articles?siteId=${siteFilter}`
+          : "/api/articles";
       const [artRes, sitesRes] = await Promise.allSettled([
         fetch(url),
         fetch("/api/sites"),
@@ -74,14 +95,17 @@ export default function ArticlesPage() {
     }
   }, [siteFilter]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   async function handleExport(article: Article) {
     try {
       const res = await fetch(`/api/articles/${article.id}`);
       if (!res.ok) throw new Error("Failed to fetch article");
       const data = await res.json();
-      const content = data.markdownContent ?? data.articleOutput?.markdownContent ?? "";
+      const content =
+        data.markdownContent ?? data.articleOutput?.markdownContent ?? "";
       const blob = new Blob([content], { type: "text/markdown" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -98,7 +122,11 @@ export default function ArticlesPage() {
 
   const filtered = articles.filter((a) => {
     const title = (a.title ?? a.metadata?.title ?? "").toLowerCase();
-    const keyword = (a.keyword ?? a.metadata?.targetKeyword ?? "").toLowerCase();
+    const keyword = (
+      a.keyword ??
+      a.metadata?.targetKeyword ??
+      ""
+    ).toLowerCase();
     const q = search.toLowerCase();
     return !q || title.includes(q) || keyword.includes(q);
   });
@@ -106,19 +134,58 @@ export default function ArticlesPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--th-text)", margin: 0 }}>Articles</h1>
-          <p style={{ fontSize: "14px", color: "var(--th-text-secondary)", margin: "6px 0 0" }}>
-            {loading ? "Loading..." : `${filtered.length} article${filtered.length !== 1 ? "s" : ""}`}
+          <h1
+            style={{
+              fontSize: "24px",
+              fontWeight: 700,
+              color: "var(--th-text)",
+              margin: 0,
+            }}
+          >
+            Articles
+          </h1>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "var(--th-text-secondary)",
+              margin: "6px 0 0",
+            }}
+          >
+            {loading
+              ? "Loading..."
+              : `${filtered.length} article${filtered.length !== 1 ? "s" : ""}`}
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           {/* Search */}
           <div style={{ position: "relative" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--th-text-muted)" }}>
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                position: "absolute",
+                left: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "var(--th-text-muted)",
+              }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               type="text"
@@ -135,8 +202,12 @@ export default function ArticlesPage() {
                 outline: "none",
                 width: "220px",
               }}
-              onFocus={e => e.currentTarget.style.borderColor = "var(--th-accent)"}
-              onBlur={e => e.currentTarget.style.borderColor = "var(--th-border)"}
+              onFocus={(e) =>
+                (e.currentTarget.style.borderColor = "var(--th-accent)")
+              }
+              onBlur={(e) =>
+                (e.currentTarget.style.borderColor = "var(--th-border)")
+              }
             />
           </div>
           {/* Site filter */}
@@ -155,24 +226,56 @@ export default function ArticlesPage() {
             }}
           >
             <option value="all">All Sites</option>
-            {sites.map((s) => <option key={s.id} value={s.id}>{s.companyName}</option>)}
+            {sites.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.companyName}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
       {error && (
-        <div style={{ padding: "12px 16px", borderRadius: "8px", background: "var(--th-danger-soft)", color: "var(--th-danger)", fontSize: "14px" }}>
+        <div
+          style={{
+            padding: "12px 16px",
+            borderRadius: "8px",
+            background: "var(--th-danger-soft)",
+            color: "var(--th-danger)",
+            fontSize: "14px",
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Table */}
-      <div className="card" style={{ overflow: "hidden" }}>
+      <div className="card" style={{ overflow: "hidden" }} id="articles-table">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "var(--th-inset)" }}>
-              {["Title", "Site", "Keyword", "Words", "Links", "Date", "Actions"].map((h) => (
-                <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--th-text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+              {[
+                "Title",
+                "Site",
+                "Keyword",
+                "Words",
+                "Links",
+                "Date",
+                "Actions",
+              ].map((h) => (
+                <th
+                  key={h}
+                  style={{
+                    padding: "10px 16px",
+                    textAlign: "left",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: "var(--th-text-muted)",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {h}
                 </th>
               ))}
@@ -184,22 +287,42 @@ export default function ArticlesPage() {
                 <tr key={i}>
                   {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} style={{ padding: "14px 16px" }}>
-                      <div className="skeleton" style={{ height: "14px", width: j === 0 ? "70%" : "40%", borderRadius: "4px" }} />
+                      <div
+                        className="skeleton"
+                        style={{
+                          height: "14px",
+                          width: j === 0 ? "70%" : "40%",
+                          borderRadius: "4px",
+                        }}
+                      />
                     </td>
                   ))}
                 </tr>
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: "60px 16px", textAlign: "center", color: "var(--th-text-muted)", fontSize: "14px" }}>
-                  {search ? `No articles matching "${search}"` : "No articles yet. Run the pipeline to generate content."}
+                <td
+                  colSpan={7}
+                  style={{
+                    padding: "60px 16px",
+                    textAlign: "center",
+                    color: "var(--th-text-muted)",
+                    fontSize: "14px",
+                  }}
+                >
+                  {search
+                    ? `No articles matching "${search}"`
+                    : "No articles yet. Run the pipeline to generate content."}
                 </td>
               </tr>
             ) : (
               filtered.map((article, idx) => {
-                const title = article.title ?? article.metadata?.title ?? "Untitled";
-                const keyword = article.keyword ?? article.metadata?.targetKeyword ?? "—";
-                const siteName = siteMap[article.siteId ?? ""] ?? article.site ?? "—";
+                const title =
+                  article.title ?? article.metadata?.title ?? "Untitled";
+                const keyword =
+                  article.keyword ?? article.metadata?.targetKeyword ?? "—";
+                const siteName =
+                  siteMap[article.siteId ?? ""] ?? article.site ?? "—";
                 const words = article.wordCount ?? article.word_count ?? 0;
                 const linksVerified = article.linksVerified ?? 0;
                 const linksTotal = article.linksTotal ?? 0;
@@ -207,9 +330,18 @@ export default function ArticlesPage() {
                 return (
                   <tr
                     key={article.id}
-                    style={{ borderTop: idx > 0 ? "1px solid var(--th-border)" : "none", transition: "background 0.1s ease" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "var(--th-card-hover)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    style={{
+                      borderTop:
+                        idx > 0 ? "1px solid var(--th-border)" : "none",
+                      transition: "background 0.1s ease",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "var(--th-card-hover)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
                   >
                     <td style={{ padding: "12px 16px", maxWidth: "260px" }}>
                       <Link
@@ -224,33 +356,93 @@ export default function ArticlesPage() {
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.color = "var(--th-text-accent)")}
-                        onMouseLeave={e => (e.currentTarget.style.color = "var(--th-text)")}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.color =
+                            "var(--th-text-accent)")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.color = "var(--th-text)")
+                        }
                       >
                         {title}
                       </Link>
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-secondary)", whiteSpace: "nowrap" }}>{siteName}</td>
-                    <td style={{ padding: "12px 16px", maxWidth: "180px" }}>
-                      <span style={{ fontSize: "12px", color: "var(--th-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{keyword}</span>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "12px",
+                        color: "var(--th-text-secondary)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {siteName}
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: "13px", color: "var(--th-text-secondary)", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "12px 16px", maxWidth: "180px" }}>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--th-text-secondary)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          display: "block",
+                        }}
+                      >
+                        {keyword}
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "var(--th-text-secondary)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {words > 0 ? words.toLocaleString() : "—"}
                     </td>
                     <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
                       {linksTotal > 0 ? (
-                        <span style={{ fontSize: "12px", color: linksVerified === linksTotal ? "var(--th-success)" : "var(--th-warning)" }}>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color:
+                              linksVerified === linksTotal
+                                ? "var(--th-success)"
+                                : "var(--th-warning)",
+                          }}
+                        >
                           {linksVerified}/{linksTotal}
                         </span>
                       ) : (
-                        <span style={{ fontSize: "12px", color: "var(--th-text-muted)" }}>—</span>
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--th-text-muted)",
+                          }}
+                        >
+                          —
+                        </span>
                       )}
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-muted)", whiteSpace: "nowrap" }}>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "12px",
+                        color: "var(--th-text-muted)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {formatDate(article.createdAt ?? article.created_at)}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "6px",
+                          alignItems: "center",
+                        }}
+                      >
                         <Link
                           href={`/articles/${article.id}`}
                           style={{
@@ -280,8 +472,13 @@ export default function ArticlesPage() {
                             cursor: "pointer",
                             transition: "background 0.15s ease",
                           }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "var(--th-inset)")}
-                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background =
+                              "var(--th-inset)")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background = "transparent")
+                          }
                         >
                           <ExportIcon />
                         </button>
@@ -293,6 +490,42 @@ export default function ArticlesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Bright Data subtle banner */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "14px 20px",
+          borderRadius: "10px",
+          background: "var(--th-accent-soft)",
+          border: "1px solid var(--th-accent-muted)",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: "13px", color: "var(--th-text-secondary)" }}>
+          Articles researched using{" "}
+          <span style={{ color: "var(--th-text-accent)", fontWeight: 600 }}>
+            Bright Data Discover API
+          </span>
+        </span>
+        <a
+          href="https://brightdata.com?utm_source=content-pipeline-studio&utm_medium=demo&utm_campaign=content-system-bd"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "var(--th-text-accent)",
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Learn more
+        </a>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Sidebar } from "@/components/layout/sidebar";
+import { AuthGate } from "@/components/auth/auth-gate";
 import "./globals.css";
 
 const inter = Inter({
@@ -36,14 +37,16 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-7xl px-6 py-8">
-              {children}
-            </div>
-          </main>
-        </div>
+        <AuthGate>
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto">
+              <div className="mx-auto max-w-7xl px-6 py-8">
+                {children}
+              </div>
+            </main>
+          </div>
+        </AuthGate>
       </body>
     </html>
   );
