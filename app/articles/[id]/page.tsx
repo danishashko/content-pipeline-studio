@@ -19,10 +19,16 @@ interface FaqItem {
   answer: string;
 }
 
+interface OutlineItem {
+  heading?: string;
+  subheadings?: string[];
+  keyPoints?: string[];
+}
+
 interface ResearchBrief {
-  outline?: string[];
+  outline?: OutlineItem[] | string[];
   competitorInsights?: string[] | string;
-  externalSources?: { url: string; title?: string }[];
+  externalSources?: { url: string; title?: string; statOrClaim?: string }[];
   targetKeyword?: string;
   recommendedTitle?: string;
   targetWordCount?: number;
@@ -700,10 +706,25 @@ export default function ArticleDetailPage() {
                 <h4 style={{ fontSize: "11px", fontWeight: 700, color: "var(--th-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>
                   Content Outline
                 </h4>
-                <ul style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  {research.outline.map((item, i) => (
-                    <li key={i} style={{ fontSize: "13px", color: "var(--th-text-secondary)", lineHeight: 1.5 }}>{item}</li>
-                  ))}
+                <ul style={{ margin: 0, paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {research.outline.map((item, i) => {
+                    if (typeof item === "string") {
+                      return <li key={i} style={{ fontSize: "13px", color: "var(--th-text-secondary)", lineHeight: 1.5 }}>{item}</li>;
+                    }
+                    const section = item as OutlineItem;
+                    return (
+                      <li key={i} style={{ fontSize: "13px", color: "var(--th-text-secondary)", lineHeight: 1.5 }}>
+                        <span style={{ fontWeight: 600, color: "var(--th-text)" }}>{section.heading}</span>
+                        {section.subheadings && section.subheadings.length > 0 && (
+                          <ul style={{ margin: "4px 0 0", paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                            {section.subheadings.map((sub, j) => (
+                              <li key={j} style={{ fontSize: "12px", color: "var(--th-text-muted)" }}>{sub}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
