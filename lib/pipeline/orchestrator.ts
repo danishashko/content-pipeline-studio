@@ -13,6 +13,7 @@ import { verifyUrls } from "@/lib/pipeline/verifiers/url-verifier";
 import { verifyStats } from "@/lib/pipeline/verifiers/stat-verifier";
 import type { StatClaim } from "@/lib/pipeline/verifiers/stat-verifier";
 import { generateFeaturedImage } from "@/lib/gemini-image";
+import { captureVendorScreenshots } from "@/lib/screenshots";
 import { SiteConfigSchema } from "@/lib/types";
 import type { SiteConfig, VerificationEntry } from "@/lib/types";
 
@@ -180,6 +181,27 @@ export async function runPipeline(keywordId: string): Promise<void> {
     } catch (imgErr) {
       console.warn(
         `[${jobId}] Featured image generation failed (non-fatal): ${imgErr instanceof Error ? imgErr.message : String(imgErr)}`,
+      );
+    }
+
+    // -----------------------------------------------------------------------
+    // Stage 2.6: Vendor screenshots for listicle articles (non-fatal)
+    // -----------------------------------------------------------------------
+    let vendorScreenshots: { vendorName: string; vendorUrl: string }[] = [];
+    try {
+      const screenshots = await captureVendorScreenshots(
+        articleOutput.markdownContent,
+        jobId,
+      );
+      // Store screenshot metadata (base64 images are too large for JSONB,
+      // so we just record which vendors were captured successfully)
+      vendorScreenshots = screenshots.map((s) => ({
+        vendorName: s.vendorName,
+        vendorUrl: s.vendorUrl,
+      }));
+    } catch (ssErr) {
+      console.warn(
+        `[${jobId}] Vendor screenshots failed (non-fatal): ${ssErr instanceof Error ? ssErr.message : String(ssErr)}`,
       );
     }
 
