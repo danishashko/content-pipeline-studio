@@ -20,6 +20,8 @@ export async function executeWriter(
 
   const userPrompt = `Write a full blog article based on the following content brief.
 
+**MINIMUM WORD COUNT: ${brief.targetWordCount} words (stay within +-10%)**
+
 ## Content Brief
 
 **Target Keyword:** ${brief.targetKeyword}

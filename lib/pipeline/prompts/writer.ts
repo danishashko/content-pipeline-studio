@@ -74,6 +74,12 @@ ${messagingPrinciples}
 
 ---
 
+## WORD COUNT RULES (non-negotiable)
+
+- Follow the brief's target word count. Stay within +-10% of the target. Typically 1,500-2,500 words. An article under 1,000 words will be rejected.
+
+---
+
 ## STRUCTURAL RULES (non-negotiable)
 
 1. Start with a compelling intro paragraph. NEVER start with a heading.
@@ -81,7 +87,7 @@ ${messagingPrinciples}
 3. Use a clear H2/H3 hierarchy matching the content brief outline.
 4. Short paragraphs: 2-4 sentences maximum. No walls of text.
 5. FAQs belong ONLY in the \`faqs\` array in the JSON output. NEVER put FAQ sections in the body markdown.
-6. End the body with a CTA sentence that bridges the article topic to ${siteConfig.companyName}'s product. Use the CTA config above.
+6. End the body with a CTA sentence that bridges the article topic to ${siteConfig.companyName}'s product. The CTA must be DIRECT and NATURAL, not generic. BAD (generic): "Start free trial to improve your operations." GOOD: "To compare scraping APIs with real benchmark data, [start your free trial with Bright Data](/pricing)." Use the CTA config above.
 
 ---
 
@@ -99,18 +105,35 @@ ${messagingPrinciples}
 
 ## LINKING RULES (non-negotiable)
 
+LINKS ARE MANDATORY. An article with zero links will be rejected.
+
 **Internal links:**
+- The article MUST contain: At least 5-8 internal links (relative paths), At least 2-3 external links (full URLs to data sources).
+- Of the internal links, at least 2-3 MUST point to the company's product/feature pages where contextually relevant.
+- Include ALL internal links from the content brief. Use diverse anchor text. Never repeat the same anchor text for different pages.
 - Use ONLY internal links provided in the content brief.
 - No duplicate links: each URL linked at most once.
-- Diverse anchor text: never repeat the exact same anchor text for different pages.
 - Relative paths only: \`/blog/article-slug\`, never \`https://example.com/blog/article-slug\`.
 
 **External links:**
-- Link ONLY to authoritative data sources: McKinsey, Deloitte, Gartner, Forrester, government (.gov), academic (.edu), official standards bodies.
+- ONLY use external URLs that appear in the content brief's external_sources array. DO NOT invent, guess, or recall any external URL from your training data. Every external URL you include MUST be copy-pasted from the brief. This is non-negotiable.
+- NAMED ATTRIBUTION RULE (non-negotiable): NEVER write "according to X", "per X", "X reports that" without a hyperlink to the source. If a stat names a source but has no matching URL in external_sources, remove the source name and state the fact as general knowledge.
+- Anchor text for external links should describe the data, not use vague phrases. BAD: [Industry studies show](url) or [According to Nakajima](url). GOOD: [McKinsey's 2024 manufacturing report](url) or [67% of maintenance teams](url).
 - NEVER link to competitors: ${competitors}.
 - NEVER link to Wikipedia.
 - Each external URL linked at most once.
 - Every cited statistic MUST be hyperlinked to its original source URL.
+
+**Listicle/Comparison articles:**
+- LISTICLE VENDOR LINKS (for comparison/listicle articles): In the FIRST sentence of each vendor review section, link the vendor's name to their official homepage URL. Example: [Tenna](https://www.tenna.com) is a construction fleet... This enables automated screenshots.
+- For comparison articles covering 3+ vendors: Each vendor MUST get its own H3 section with: company name linked to homepage, 2-3 paragraphs of analysis, specific pros/cons or use cases, pricing info if available from research.
+
+---
+
+## DATA ACCURACY RULES (non-negotiable)
+
+- NO EXTRAPOLATED EXAMPLES: When a source provides a specific example, use the source's actual numbers. NEVER take a ratio from a source and apply it to a made-up example. Use the source's own example or state the ratio without inventing figures.
+- NO INFLATED STATISTICS: When citing a range from a source, use the exact range. Do NOT round up or widen ranges.
 
 ---
 
