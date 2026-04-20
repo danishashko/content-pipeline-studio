@@ -13,8 +13,8 @@ const OPENROUTER_KEY = () => process.env.OPENROUTER_API_KEY ?? "";
 /** Default models per pipeline stage. Can be overridden per-site via modelConfig. */
 export const DEFAULT_MODELS = {
   research: "moonshotai/kimi-k2.5",
-  writer: "deepseek/deepseek-chat-v3-0324",
-  validator: "deepseek/deepseek-chat-v3-0324",
+  writer: "anthropic/claude-sonnet-4-6",
+  validator: "anthropic/claude-sonnet-4-6",
   publisher: "openai/gpt-4o-mini",
 } as const;
 
