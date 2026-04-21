@@ -97,8 +97,20 @@ export async function complete(
 
   const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
+    error?: { message?: string; code?: number };
   };
-  return data.choices?.[0]?.message?.content ?? "";
+
+  if (data.error) {
+    throw new Error(`OpenRouter API error: ${data.error.message ?? JSON.stringify(data.error)}`);
+  }
+
+  const content = data.choices?.[0]?.message?.content ?? "";
+  if (!content) {
+    console.error(`[OpenRouter] Empty response from ${config.model}. Full response: ${JSON.stringify(data).slice(0, 500)}`);
+    throw new Error(`OpenRouter returned empty content from ${config.model}`);
+  }
+
+  return content;
 }
 
 // ---------------------------------------------------------------------------

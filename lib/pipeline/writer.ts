@@ -68,7 +68,7 @@ Write the complete article now. Return only the JSON object.`;
   console.log(`[${jobId}] Calling OpenRouter (${writerModel}) for article writing`);
   const rawResponse = await complete(systemPrompt, userPrompt, {
     model: writerModel,
-    maxTokens: 16384,
+    maxTokens: 32768,
     temperature: 0.7,
     jsonMode: true,
   });

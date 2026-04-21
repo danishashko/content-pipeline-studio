@@ -241,8 +241,9 @@ Now produce the ContentBrief JSON.`;
   console.log(`[${jobId}] Calling OpenRouter (${researchModel}) for research synthesis`);
   const rawResponse = await complete(systemPrompt, userPrompt, {
     model: researchModel,
-    maxTokens: 16384,
+    maxTokens: 32768,
     temperature: 0.3,
+    jsonMode: true,
   });
 
   // Step 7: Parse as ContentBrief
