@@ -203,7 +203,10 @@ async function resolveVendorUrl(
     `https://${slug}.com`,
     `https://www.${slug}.io`,
     `https://${slug}.io`,
+    `https://${slug}.org`,
+    `https://${slug}.dev`,
     `https://www.get${slug}.com`,
+    `https://www.${slug}api.com`,
   ];
 
   for (const url of candidates) {
