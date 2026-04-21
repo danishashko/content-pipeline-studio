@@ -1073,7 +1073,7 @@ export default function SiteDetailPage() {
                       <div key={stage} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                         <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--th-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{stage}</span>
                         <span style={{ fontSize: "13px", color: cfg.modelConfig?.[stage] ? "var(--th-text)" : "var(--th-text-muted)", fontFamily: "monospace" }}>
-                          {cfg.modelConfig?.[stage] || (stage === "research" ? "moonshotai/kimi-k2.5" : stage === "publisher" ? "openai/gpt-4o-mini" : "deepseek/deepseek-chat-v3-0324")}
+                          {cfg.modelConfig?.[stage] || (stage === "research" ? "moonshotai/kimi-k2.6" : stage === "publisher" ? "openai/gpt-4o-mini" : "deepseek/deepseek-chat-v3-0324")}
                           {!cfg.modelConfig?.[stage] && <span style={{ fontSize: "10px", marginLeft: "6px", opacity: 0.6 }}>(default)</span>}
                         </span>
                       </div>
@@ -1195,7 +1195,7 @@ export default function SiteDetailPage() {
                 <div className="card" style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
                   <SectionCard title="Model Configuration" description="Override LLM models per pipeline stage. Leave blank for defaults. Uses OpenRouter model IDs (e.g. anthropic/claude-sonnet-4-6).">
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                      <Field label="Research Model" id="edit-model-research" value={editModelResearch} onChange={setEditModelResearch} placeholder="moonshotai/kimi-k2.5" hint="Default: moonshotai/kimi-k2.5" />
+                      <Field label="Research Model" id="edit-model-research" value={editModelResearch} onChange={setEditModelResearch} placeholder="moonshotai/kimi-k2.6" hint="Default: moonshotai/kimi-k2.6" />
                       <Field label="Writer Model" id="edit-model-writer" value={editModelWriter} onChange={setEditModelWriter} placeholder="deepseek/deepseek-chat-v3-0324" hint="Default: deepseek/deepseek-chat-v3-0324" />
                       <Field label="Validator Model" id="edit-model-validator" value={editModelValidator} onChange={setEditModelValidator} placeholder="deepseek/deepseek-chat-v3-0324" hint="Default: deepseek/deepseek-chat-v3-0324" />
                       <Field label="Publisher Model" id="edit-model-publisher" value={editModelPublisher} onChange={setEditModelPublisher} placeholder="openai/gpt-4o-mini" hint="Default: openai/gpt-4o-mini (not used for WP publish)" />
