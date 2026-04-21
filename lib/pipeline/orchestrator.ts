@@ -187,18 +187,52 @@ export async function runPipeline(keywordId: string): Promise<void> {
     // -----------------------------------------------------------------------
     // Stage 2.6: Vendor screenshots for listicle articles (non-fatal)
     // -----------------------------------------------------------------------
-    let vendorScreenshots: { vendorName: string; vendorUrl: string }[] = [];
     try {
       const screenshots = await captureVendorScreenshots(
         articleOutput.markdownContent,
         jobId,
       );
-      // Store screenshot metadata (base64 images are too large for JSONB,
-      // so we just record which vendors were captured successfully)
-      vendorScreenshots = screenshots.map((s) => ({
-        vendorName: s.vendorName,
-        vendorUrl: s.vendorUrl,
-      }));
+
+      // Upload each screenshot to Supabase Storage and inject into markdown
+      for (const ss of screenshots) {
+        try {
+          const slug = ss.vendorName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+          const filename = `${jobId}/${slug}.png`;
+          const imageBuffer = Buffer.from(ss.imageBase64, "base64");
+
+          const { error: uploadErr } = await supabase.storage
+            .from("screenshots")
+            .upload(filename, imageBuffer, {
+              contentType: ss.mimeType,
+              upsert: true,
+            });
+
+          if (uploadErr) {
+            console.warn(`[${jobId}] Screenshot upload failed for ${ss.vendorName}: ${uploadErr.message}`);
+            continue;
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from("screenshots")
+            .getPublicUrl(filename);
+
+          // Inject screenshot after the vendor's heading in the markdown
+          const vendorPattern = new RegExp(
+            `(###[^\\n]*${ss.vendorName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^\\n]*\\n)`,
+            "i",
+          );
+          const imgMarkdown = `\n![${ss.vendorName} homepage](${publicUrl})\n\n`;
+          if (vendorPattern.test(articleOutput.markdownContent)) {
+            articleOutput.markdownContent = articleOutput.markdownContent.replace(
+              vendorPattern,
+              `$1${imgMarkdown}`,
+            );
+            console.log(`[${jobId}] Screenshot injected for ${ss.vendorName}: ${publicUrl}`);
+          }
+        } catch (upErr) {
+          console.warn(`[${jobId}] Screenshot processing failed for ${ss.vendorName}: ${upErr instanceof Error ? upErr.message : upErr}`);
+        }
+      }
     } catch (ssErr) {
       console.warn(
         `[${jobId}] Vendor screenshots failed (non-fatal): ${ssErr instanceof Error ? ssErr.message : String(ssErr)}`,

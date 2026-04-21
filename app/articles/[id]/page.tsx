@@ -277,6 +277,27 @@ function renderMarkdown(md: string): React.ReactNode[] {
       listItems.push(line.replace(/^\d+\. /, ""));
       i++; continue;
     }
+    // image: ![alt](url)
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+    if (imgMatch) {
+      flushList();
+      nodes.push(
+        <figure key={nextKey()} style={{ margin: "20px 0", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--th-border)" }}>
+          <img
+            src={imgMatch[2]}
+            alt={imgMatch[1]}
+            style={{ width: "100%", height: "auto", display: "block" }}
+            loading="lazy"
+          />
+          {imgMatch[1] && (
+            <figcaption style={{ padding: "8px 14px", fontSize: "12px", color: "var(--th-text-muted)", background: "var(--th-inset)", borderTop: "1px solid var(--th-border)" }}>
+              {imgMatch[1]}
+            </figcaption>
+          )}
+        </figure>
+      );
+      i++; continue;
+    }
     // blank line
     if (line.trim() === "") {
       flushList();
