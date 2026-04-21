@@ -88,6 +88,7 @@ export async function complete(
         { role: "user", content: userPrompt },
       ],
     }),
+    signal: AbortSignal.timeout(600_000), // 10 minute timeout
   });
 
   if (!res.ok) {

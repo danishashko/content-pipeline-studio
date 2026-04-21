@@ -10,9 +10,6 @@
  */
 
 const SCREENSHOTONE_KEY = () => process.env.SCREENSHOTONE_API_KEY ?? "";
-const BRIGHT_DATA_KEY = () => process.env.BRIGHT_DATA_API_KEY ?? "";
-const BRIGHT_DATA_UNLOCKER_ZONE = () =>
-  process.env.BRIGHT_DATA_UNLOCKER_ZONE ?? "web_unlocker1";
 
 export interface VendorScreenshot {
   vendorName: string;
@@ -52,51 +49,63 @@ async function screenshotOne(url: string): Promise<string> {
   return Buffer.from(buffer).toString("base64");
 }
 
-async function brightDataScreenshot(url: string): Promise<string> {
-  // Bright Data /request only supports format "json" or "raw".
-  // Use format "raw" and request a screenshot via the render parameter.
-  const res = await fetch("https://api.brightdata.com/request", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${BRIGHT_DATA_KEY()}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      zone: BRIGHT_DATA_UNLOCKER_ZONE(),
-      url,
-      format: "raw",
-      render: "screenshot",
-    }),
+/**
+ * Free fallback: use Google's PageSpeed Insights API screenshot.
+ * No API key needed. Returns a base64 screenshot of the page.
+ */
+async function freeScreenshot(url: string): Promise<string> {
+  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=PERFORMANCE&strategy=DESKTOP&fields=lighthouseResult.audits.final-screenshot`;
+
+  const res = await fetch(apiUrl, {
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!res.ok) {
-    throw new Error(
-      `Bright Data screenshot error (${res.status}): ${await res.text()}`,
-    );
+    throw new Error(`PageSpeed screenshot error (${res.status})`);
   }
 
-  const buffer = await res.arrayBuffer();
-  return Buffer.from(buffer).toString("base64");
+  const data = (await res.json()) as {
+    lighthouseResult?: {
+      audits?: {
+        "final-screenshot"?: {
+          details?: { data?: string };
+        };
+      };
+    };
+  };
+
+  const dataUri =
+    data.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
+  if (!dataUri) {
+    throw new Error("No screenshot in PageSpeed response");
+  }
+
+  // dataUri is "data:image/jpeg;base64,..."
+  const base64 = dataUri.split(",")[1];
+  if (!base64) throw new Error("Invalid screenshot data URI");
+  return base64;
 }
 
 export async function captureScreenshot(url: string): Promise<string> {
+  // Primary: ScreenshotOne (paid, best quality)
   if (SCREENSHOTONE_KEY()) {
     try {
       return await screenshotOne(url);
     } catch (err) {
       console.warn(
-        `[Screenshot] ScreenshotOne failed for ${url}: ${err instanceof Error ? err.message : err}. Trying Bright Data fallback.`,
+        `[Screenshot] ScreenshotOne failed for ${url}: ${err instanceof Error ? err.message : err}. Trying free fallback.`,
       );
     }
   }
 
-  if (BRIGHT_DATA_KEY()) {
-    return await brightDataScreenshot(url);
+  // Fallback: Google PageSpeed Insights (free, no API key needed)
+  try {
+    return await freeScreenshot(url);
+  } catch (err) {
+    throw new Error(
+      `[Screenshot] All providers failed for ${url}: ${err instanceof Error ? err.message : err}`,
+    );
   }
-
-  throw new Error(
-    "[Screenshot] No screenshot provider available. Set SCREENSHOTONE_API_KEY or BRIGHT_DATA_API_KEY.",
-  );
 }
 
 // ---------------------------------------------------------------------------
