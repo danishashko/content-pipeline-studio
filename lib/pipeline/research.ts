@@ -104,7 +104,7 @@ export async function executeResearch(
     competitorContent = mainResults
       .slice(0, 3)
       .map((r, idx) => {
-        const content = r.content ? r.content.slice(0, 6000) : "(no content returned)";
+        const content = r.content ? r.content.slice(0, 3000) : "(no content returned)";
         return `### Competitor ${idx + 1}: ${r.link}\n\n${content}`;
       })
       .join("\n\n---\n\n");
@@ -116,7 +116,7 @@ export async function executeResearch(
     // Use included content for data sources
     const topDataSources = statsResults.filter((r) => r.content).slice(0, 2);
     dataSourceContent = topDataSources
-      .map((r, idx) => `### Data Source ${idx + 1}: ${r.link}\n\n${(r.content ?? "").slice(0, 4000)}`)
+      .map((r, idx) => `### Data Source ${idx + 1}: ${r.link}\n\n${(r.content ?? "").slice(0, 2000)}`)
       .join("\n\n---\n\n");
 
   } catch (discoverErr) {
