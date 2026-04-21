@@ -53,6 +53,8 @@ async function screenshotOne(url: string): Promise<string> {
 }
 
 async function brightDataScreenshot(url: string): Promise<string> {
+  // Bright Data /request only supports format "json" or "raw".
+  // Use format "raw" and request a screenshot via the render parameter.
   const res = await fetch("https://api.brightdata.com/request", {
     method: "POST",
     headers: {
@@ -62,7 +64,8 @@ async function brightDataScreenshot(url: string): Promise<string> {
     body: JSON.stringify({
       zone: BRIGHT_DATA_UNLOCKER_ZONE(),
       url,
-      format: "png",
+      format: "raw",
+      render: "screenshot",
     }),
   });
 
