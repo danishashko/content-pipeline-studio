@@ -182,7 +182,9 @@ function renderMarkdown(md: string): React.ReactNode[] {
     return parts;
   }
 
-  for (const line of lines) {
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
     // h2
     if (line.startsWith("## ")) {
       flushList();
@@ -191,7 +193,7 @@ function renderMarkdown(md: string): React.ReactNode[] {
           {inlineRender(line.slice(3))}
         </h2>
       );
-      continue;
+      i++; continue;
     }
     // h3
     if (line.startsWith("### ")) {
@@ -201,7 +203,7 @@ function renderMarkdown(md: string): React.ReactNode[] {
           {inlineRender(line.slice(4))}
         </h3>
       );
-      continue;
+      i++; continue;
     }
     // h4
     if (line.startsWith("#### ")) {
@@ -211,22 +213,74 @@ function renderMarkdown(md: string): React.ReactNode[] {
           {inlineRender(line.slice(5))}
         </h4>
       );
+      i++; continue;
+    }
+    // table: collect consecutive | lines
+    if (line.trim().startsWith("|") && line.trim().endsWith("|")) {
+      flushList();
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|") && lines[i].trim().endsWith("|")) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      // Parse table: first row = header, second row = separator, rest = body
+      if (tableLines.length >= 2) {
+        const parseCells = (row: string) =>
+          row.split("|").slice(1, -1).map((c) => c.trim());
+        const headerCells = parseCells(tableLines[0]);
+        const bodyRows = tableLines.slice(2).map(parseCells); // skip separator row
+        nodes.push(
+          <div key={nextKey()} style={{ margin: "16px 0", overflowX: "auto", borderRadius: "8px", border: "1px solid var(--th-border)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+              <thead>
+                <tr>
+                  {headerCells.map((cell, ci) => (
+                    <th key={ci} style={{
+                      padding: "10px 14px", textAlign: "left", fontWeight: 700,
+                      color: "var(--th-text)", background: "var(--th-inset)",
+                      borderBottom: "2px solid var(--th-border)",
+                      fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em",
+                    }}>
+                      {inlineRender(cell)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {bodyRows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td key={ci} style={{
+                        padding: "10px 14px", color: "var(--th-text)",
+                        borderBottom: "1px solid var(--th-border)",
+                        lineHeight: 1.5,
+                      }}>
+                        {inlineRender(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
       continue;
     }
     // list item
     if (line.match(/^[-*] /)) {
       listItems.push(line.slice(2));
-      continue;
+      i++; continue;
     }
     // numbered list
     if (line.match(/^\d+\. /)) {
       listItems.push(line.replace(/^\d+\. /, ""));
-      continue;
+      i++; continue;
     }
     // blank line
     if (line.trim() === "") {
       flushList();
-      continue;
+      i++; continue;
     }
     // paragraph
     flushList();
@@ -235,6 +289,7 @@ function renderMarkdown(md: string): React.ReactNode[] {
         {inlineRender(line)}
       </p>
     );
+    i++;
   }
   flushList();
   return nodes;
