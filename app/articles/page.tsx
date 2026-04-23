@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface Site {
   id: string;
@@ -58,6 +59,7 @@ function ExportIcon() {
 }
 
 export default function ArticlesPage() {
+  const isMobile = useIsMobile();
   const [articles, setArticles] = useState<Article[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,17 @@ export default function ArticlesPage() {
       }
       if (sitesRes.status === "fulfilled" && sitesRes.value.ok) {
         const d = await sitesRes.value.json();
-        setSites(Array.isArray(d) ? d : (d.sites ?? []));
+        const raw: Record<string, unknown>[] = Array.isArray(d)
+          ? d
+          : (d.sites ?? []);
+        setSites(
+          raw.map((s) => ({
+            id: s.id as string,
+            companyName: (s.name ??
+              (s.config as Record<string, unknown>)?.companyName ??
+              s.slug) as string,
+          })),
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
@@ -164,9 +176,21 @@ export default function ArticlesPage() {
               : `${filtered.length} article${filtered.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            alignItems: "center",
+          }}
+        >
           {/* Search */}
-          <div style={{ position: "relative" }}>
+          <div
+            style={{
+              position: "relative",
+              flex: isMobile ? "1 1 100%" : "none",
+            }}
+          >
             <svg
               width="14"
               height="14"
@@ -200,7 +224,7 @@ export default function ArticlesPage() {
                 color: "var(--th-text)",
                 fontSize: "13px",
                 outline: "none",
-                width: "220px",
+                width: isMobile ? "100%" : "220px",
               }}
               onFocus={(e) =>
                 (e.currentTarget.style.borderColor = "var(--th-accent)")
@@ -223,6 +247,7 @@ export default function ArticlesPage() {
               fontSize: "13px",
               cursor: "pointer",
               outline: "none",
+              flex: isMobile ? "1" : "none",
             }}
           >
             <option value="all">All Sites</option>
