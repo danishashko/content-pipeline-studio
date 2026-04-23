@@ -49,9 +49,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error:
-              "Article limit reached. Upgrade with Bright Data to generate more.",
-            upgrade_url:
-              "https://brightdata.com/cp/start?utm_source=content-pipeline-studio&utm_medium=demo&utm_campaign=content-system-bd",
+              "Free article used. Fork the project on GitHub and add your own Bright Data keys to run unlimited articles.",
+            fork_url:
+              "https://github.com/danishashko/content-pipeline-studio/fork",
+            api_url:
+              "https://brightdata.com/cp/start?utm_source=content-pipeline-studio&utm_medium=demo&utm_campaign=limit-reached",
           },
           { status: 403 },
         );

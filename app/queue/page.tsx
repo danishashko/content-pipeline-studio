@@ -121,14 +121,7 @@ export default function QueuePage() {
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
 
-  // Email gate modal
-  const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [emailModalKeywordId, setEmailModalKeywordId] = useState<string | null>(
-    null,
-  );
-  const [emailInput, setEmailInput] = useState("");
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -160,53 +153,23 @@ export default function QueuePage() {
     loadData();
   }, [loadData]);
 
-  function openEmailModal(keywordId: string) {
-    const storedEmail =
+  async function handleRun(keywordId: string) {
+    const email =
       typeof window !== "undefined"
         ? (localStorage.getItem("cps_lead_email") ?? "")
         : "";
-    setEmailInput(storedEmail);
-    setEmailError(null);
-    setEmailModalKeywordId(keywordId);
-    setEmailModalOpen(true);
-  }
-
-  async function handleEmailModalSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!emailModalKeywordId) return;
-    const email = emailInput.trim();
-    if (!email || !email.includes("@")) {
-      setEmailError("Please enter a valid email address.");
-      return;
-    }
-    setEmailSubmitting(true);
-    setEmailError(null);
-    try {
-      // Upsert lead
-      await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      // Store for future runs
-      localStorage.setItem("cps_lead_email", email);
-      setEmailModalOpen(false);
-      await handleRun(emailModalKeywordId, email);
-    } catch {
-      setEmailError("Something went wrong. Please try again.");
-    } finally {
-      setEmailSubmitting(false);
-    }
-  }
-
-  async function handleRun(keywordId: string, email?: string) {
     setRunningId(keywordId);
+    setLimitReached(false);
     try {
-      const res = await fetch(`/api/pipeline/run/${keywordId}`, {
+      const res = await fetch(`/api/pipeline/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keywordId, email }),
       });
+      if (res.status === 403) {
+        setLimitReached(true);
+        return;
+      }
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       await loadData();
     } catch (err) {
@@ -510,7 +473,7 @@ export default function QueuePage() {
                       <div style={{ display: "flex", gap: "8px" }}>
                         {kw.status === "pending" || kw.status === "failed" ? (
                           <button
-                            onClick={() => openEmailModal(kw.id)}
+                            onClick={() => handleRun(kw.id)}
                             disabled={runningId === kw.id}
                             style={{
                               padding: "5px 12px",
@@ -741,13 +704,13 @@ export default function QueuePage() {
         </form>
       </div>
 
-      {/* Email gate modal */}
-      {emailModalOpen && (
+      {/* Article limit reached modal */}
+      {limitReached && (
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.6)",
+            background: "rgba(0,0,0,0.65)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -755,158 +718,135 @@ export default function QueuePage() {
             padding: "24px",
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setEmailModalOpen(false);
+            if (e.target === e.currentTarget) setLimitReached(false);
           }}
         >
           <div
             style={{
               width: "100%",
-              maxWidth: "400px",
+              maxWidth: "420px",
               background: "var(--th-card)",
               border: "1px solid var(--th-border)",
               borderRadius: "16px",
-              padding: "32px",
+              padding: "36px 32px",
               boxShadow: "var(--th-shadow-lg)",
+              textAlign: "center",
             }}
           >
-            <div style={{ marginBottom: "20px" }}>
-              <h2
-                style={{
-                  fontSize: "17px",
-                  fontWeight: 700,
-                  color: "var(--th-text)",
-                  margin: "0 0 6px",
-                }}
-              >
-                Enter your email to run the pipeline
-              </h2>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "var(--th-text-secondary)",
-                  margin: 0,
-                  lineHeight: 1.5,
-                }}
-              >
-                We use this to track your generated articles. Free accounts get
-                1 article.
-              </p>
-            </div>
-
-            <form
-              onSubmit={handleEmailModalSubmit}
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            <div
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
+                background: "var(--th-accent-soft)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 20px",
+              }}
             >
-              <input
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="you@company.com"
-                autoFocus
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--th-text-accent)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+              </svg>
+            </div>
+            <h2
+              style={{
+                fontSize: "18px",
+                fontWeight: 700,
+                color: "var(--th-text)",
+                margin: "0 0 10px",
+              }}
+            >
+              You&apos;ve used your free article
+            </h2>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--th-text-secondary)",
+                margin: "0 0 28px",
+                lineHeight: 1.6,
+              }}
+            >
+              This demo gives each visitor one article to try the pipeline. Want
+              unlimited runs? Fork the project on GitHub and connect your own
+              Bright Data API keys — it takes under 5 minutes.
+            </p>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
+              <a
+                href="https://github.com/danishashko/content-pipeline-studio/fork"
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
-                  width: "100%",
-                  padding: "10px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "12px 20px",
                   borderRadius: "8px",
-                  border: `1px solid ${emailError ? "var(--th-danger)" : "var(--th-border)"}`,
-                  background: "var(--th-inset)",
-                  color: "var(--th-text)",
+                  background: "var(--th-text)",
+                  color: "var(--th-bg)",
                   fontSize: "14px",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = "var(--th-accent)")
-                }
-                onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = emailError
-                    ? "var(--th-danger)"
-                    : "var(--th-border)")
-                }
-              />
-
-              {emailError && (
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--th-danger)",
-                    margin: 0,
-                  }}
-                >
-                  {emailError}
-                </p>
-              )}
-
-              <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                <button
-                  type="button"
-                  onClick={() => setEmailModalOpen(false)}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid var(--th-border)",
-                    background: "transparent",
-                    color: "var(--th-text-secondary)",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={emailSubmitting || !emailInput.trim()}
-                  style={{
-                    flex: 2,
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "none",
-                    background:
-                      emailSubmitting || !emailInput.trim()
-                        ? "var(--th-border)"
-                        : "var(--th-accent)",
-                    color:
-                      emailSubmitting || !emailInput.trim()
-                        ? "var(--th-text-muted)"
-                        : "#fff",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor:
-                      emailSubmitting || !emailInput.trim()
-                        ? "not-allowed"
-                        : "pointer",
-                    transition: "background 0.15s ease",
-                  }}
-                >
-                  {emailSubmitting ? "Starting..." : "Run Pipeline"}
-                </button>
-              </div>
-
-              <p
-                style={{
-                  fontSize: "11px",
-                  color: "var(--th-text-muted)",
-                  margin: 0,
-                  textAlign: "center",
-                  lineHeight: 1.5,
+                  fontWeight: 700,
+                  textDecoration: "none",
                 }}
               >
-                Need more articles?{" "}
-                <a
-                  href="https://brightdata.com/cp/start?utm_source=content-pipeline-studio&utm_medium=demo&utm_campaign=content-system-bd"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    color: "var(--th-text-accent)",
-                    textDecoration: "none",
-                    fontWeight: 500,
-                  }}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
                 >
-                  Upgrade with Bright Data
-                </a>
-              </p>
-            </form>
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+                Fork on GitHub
+              </a>
+              <a
+                href="https://brightdata.com/cp/start?utm_source=content-pipeline-studio&utm_medium=demo&utm_campaign=limit-reached"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "12px 20px",
+                  borderRadius: "8px",
+                  background: "var(--th-accent-soft)",
+                  color: "var(--th-text-accent)",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                Get Bright Data API Keys (free $5 credit)
+              </a>
+              <button
+                onClick={() => setLimitReached(false)}
+                style={{
+                  padding: "10px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--th-border)",
+                  background: "transparent",
+                  color: "var(--th-text-secondary)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
