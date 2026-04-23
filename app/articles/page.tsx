@@ -94,6 +94,7 @@ export default function ArticlesPage() {
         setSites(
           raw.map((s) => ({
             id: s.id as string,
+            slug: (s.slug ?? "") as string,
             companyName: (s.name ??
               (s.config as Record<string, unknown>)?.companyName ??
               s.slug) as string,
