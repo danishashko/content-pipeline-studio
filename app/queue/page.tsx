@@ -360,196 +360,206 @@ export default function QueuePage() {
 
       {/* Keywords table */}
       <div className="card" style={{ overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "var(--th-inset)" }}>
-              {[
-                "Keyword",
-                "Site",
-                "Status",
-                "Priority",
-                "Word Count",
-                "Created",
-                "Actions",
-              ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 16px",
-                    textAlign: "left",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "var(--th-text-muted)",
-                    letterSpacing: "0.05em",
-                    textTransform: "uppercase",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <td key={j} style={{ padding: "14px 16px" }}>
-                      <div
-                        className="skeleton"
-                        style={{
-                          height: "14px",
-                          width: j === 0 ? "60%" : "40%",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : displayedKeywords.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  style={{
-                    padding: "60px 16px",
-                    textAlign: "center",
-                    color: "var(--th-text-muted)",
-                    fontSize: "14px",
-                  }}
-                >
-                  No keywords in queue. Import keywords below to get started.
-                </td>
-              </tr>
-            ) : (
-              displayedKeywords.map((kw, idx) => (
-                <tr
-                  key={kw.id}
-                  style={{
-                    borderTop: idx > 0 ? "1px solid var(--th-border)" : "none",
-                    transition: "background 0.1s ease",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "var(--th-card-hover)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "transparent")
-                  }
-                >
-                  <td
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: "560px",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "var(--th-inset)" }}>
+                {[
+                  "Keyword",
+                  "Site",
+                  "Status",
+                  "Priority",
+                  "Word Count",
+                  "Created",
+                  "Actions",
+                ].map((h) => (
+                  <th
+                    key={h}
                     style={{
-                      padding: "12px 16px",
-                      fontSize: "13px",
+                      padding: "10px 16px",
+                      textAlign: "left",
+                      fontSize: "11px",
                       fontWeight: 600,
-                      color: "var(--th-text)",
-                      maxWidth: "220px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        display: "block",
-                      }}
-                    >
-                      {kw.keyword}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      fontSize: "12px",
-                      color: "var(--th-text-secondary)",
-                    }}
-                  >
-                    {siteMap[kw.siteId] ?? kw.site ?? "—"}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <StatusBadge status={kw.status} />
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      fontSize: "13px",
-                      color: "var(--th-text-secondary)",
-                    }}
-                  >
-                    {kw.priority}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      fontSize: "13px",
-                      color: "var(--th-text-secondary)",
-                    }}
-                  >
-                    {kw.targetWordCount.toLocaleString()}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 16px",
-                      fontSize: "12px",
                       color: "var(--th-text-muted)",
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {formatDate(kw.createdAt)}
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 7 }).map((_, j) => (
+                      <td key={j} style={{ padding: "14px 16px" }}>
+                        <div
+                          className="skeleton"
+                          style={{
+                            height: "14px",
+                            width: j === 0 ? "60%" : "40%",
+                            borderRadius: "4px",
+                          }}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : displayedKeywords.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{
+                      padding: "60px 16px",
+                      textAlign: "center",
+                      color: "var(--th-text-muted)",
+                      fontSize: "14px",
+                    }}
+                  >
+                    No keywords in queue. Import keywords below to get started.
                   </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      {kw.status === "pending" || kw.status === "failed" ? (
+                </tr>
+              ) : (
+                displayedKeywords.map((kw, idx) => (
+                  <tr
+                    key={kw.id}
+                    style={{
+                      borderTop:
+                        idx > 0 ? "1px solid var(--th-border)" : "none",
+                      transition: "background 0.1s ease",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "var(--th-card-hover)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "var(--th-text)",
+                        maxWidth: "220px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          display: "block",
+                        }}
+                      >
+                        {kw.keyword}
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "12px",
+                        color: "var(--th-text-secondary)",
+                      }}
+                    >
+                      {siteMap[kw.siteId] ?? kw.site ?? "—"}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <StatusBadge status={kw.status} />
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "var(--th-text-secondary)",
+                      }}
+                    >
+                      {kw.priority}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "13px",
+                        color: "var(--th-text-secondary)",
+                      }}
+                    >
+                      {kw.targetWordCount.toLocaleString()}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 16px",
+                        fontSize: "12px",
+                        color: "var(--th-text-muted)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatDate(kw.createdAt)}
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        {kw.status === "pending" || kw.status === "failed" ? (
+                          <button
+                            onClick={() => openEmailModal(kw.id)}
+                            disabled={runningId === kw.id}
+                            style={{
+                              padding: "5px 12px",
+                              borderRadius: "6px",
+                              border: "none",
+                              background:
+                                runningId === kw.id
+                                  ? "var(--th-inset)"
+                                  : "var(--th-accent-soft)",
+                              color:
+                                runningId === kw.id
+                                  ? "var(--th-text-muted)"
+                                  : "var(--th-text-accent)",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor:
+                                runningId === kw.id ? "not-allowed" : "pointer",
+                              transition: "background 0.15s ease",
+                            }}
+                          >
+                            {runningId === kw.id ? "Starting..." : "Run"}
+                          </button>
+                        ) : null}
                         <button
-                          onClick={() => openEmailModal(kw.id)}
-                          disabled={runningId === kw.id}
+                          onClick={() => handleDelete(kw.id)}
+                          disabled={deletingId === kw.id}
                           style={{
                             padding: "5px 12px",
                             borderRadius: "6px",
                             border: "none",
-                            background:
-                              runningId === kw.id
-                                ? "var(--th-inset)"
-                                : "var(--th-accent-soft)",
-                            color:
-                              runningId === kw.id
-                                ? "var(--th-text-muted)"
-                                : "var(--th-text-accent)",
+                            background: "var(--th-danger-soft)",
+                            color: "var(--th-danger)",
                             fontSize: "12px",
                             fontWeight: 600,
                             cursor:
-                              runningId === kw.id ? "not-allowed" : "pointer",
-                            transition: "background 0.15s ease",
+                              deletingId === kw.id ? "not-allowed" : "pointer",
+                            opacity: deletingId === kw.id ? 0.6 : 1,
                           }}
                         >
-                          {runningId === kw.id ? "Starting..." : "Run"}
+                          {deletingId === kw.id ? "..." : "Delete"}
                         </button>
-                      ) : null}
-                      <button
-                        onClick={() => handleDelete(kw.id)}
-                        disabled={deletingId === kw.id}
-                        style={{
-                          padding: "5px 12px",
-                          borderRadius: "6px",
-                          border: "none",
-                          background: "var(--th-danger-soft)",
-                          color: "var(--th-danger)",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor:
-                            deletingId === kw.id ? "not-allowed" : "pointer",
-                          opacity: deletingId === kw.id ? 0.6 : 1,
-                        }}
-                      >
-                        {deletingId === kw.id ? "..." : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Bulk Import */}

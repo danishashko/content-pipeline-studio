@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { StatsCards } from "@/components/dashboard/stats-cards";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface ArticleRow {
   id: string;
@@ -166,6 +167,7 @@ function MiniStageProgress({
 }
 
 export default function DashboardPage() {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     sites: 0,
@@ -410,13 +412,7 @@ export default function DashboardPage() {
 
       {/* Stats */}
       {loading ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "16px",
-          }}
-        >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="card" style={{ padding: "20px" }}>
               <div
@@ -456,7 +452,7 @@ export default function DashboardPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 380px",
+          gridTemplateColumns: isMobile ? "1fr" : "1fr 380px",
           gap: "20px",
         }}
       >

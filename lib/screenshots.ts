@@ -1,7 +1,7 @@
 /**
  * Vendor screenshot capture for listicle articles.
  * Primary: ScreenshotOne API (paid, reliable)
- * Fallback: Bright Data Web Unlocker screenshot via headless rendering
+ * Fallback: Bright Data Browser API (cloud Chromium via CDP)
  *
  * Vendor URL resolution follows the working pipeline's 4-step strategy:
  * 1. Markdown link anchor text matching
@@ -10,6 +10,8 @@
  */
 
 const SCREENSHOTONE_KEY = () => process.env.SCREENSHOTONE_API_KEY ?? "";
+const BRIGHT_DATA_BROWSER_AUTH = () =>
+  process.env.BRIGHT_DATA_BROWSER_AUTH ?? "";
 
 export interface VendorScreenshot {
   vendorName: string;
@@ -50,62 +52,95 @@ async function screenshotOne(url: string): Promise<string> {
 }
 
 /**
- * Free fallback: use Google's PageSpeed Insights API screenshot.
- * No API key needed. Returns a base64 screenshot of the page.
+ * Bright Data Browser API screenshot.
+ * Connects to Bright Data's cloud Chromium via CDP — no local browser needed.
+ * Handles cookie banners via JS injection. One session per URL.
  */
-async function freeScreenshot(url: string): Promise<string> {
-  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=PERFORMANCE&strategy=DESKTOP&fields=lighthouseResult.audits.final-screenshot`;
+async function brightDataBrowserScreenshot(url: string): Promise<string> {
+  const auth = BRIGHT_DATA_BROWSER_AUTH();
+  if (!auth) throw new Error("BRIGHT_DATA_BROWSER_AUTH not set");
 
-  const res = await fetch(apiUrl, {
-    signal: AbortSignal.timeout(30_000),
-  });
+  const { chromium } = await import("playwright-core");
+  const browser = await chromium.connectOverCDP(
+    `wss://${auth}@brd.superproxy.io:9222`,
+  );
 
-  if (!res.ok) {
-    throw new Error(`PageSpeed screenshot error (${res.status})`);
+  try {
+    const page = await browser.newPage();
+
+    // Block fonts to save bandwidth (images kept for screenshot fidelity)
+    await page.route("**/*", (route) => {
+      if (route.request().resourceType() === "font") {
+        route.abort();
+      } else {
+        route.continue();
+      }
+    });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(url, { timeout: 60_000, waitUntil: "domcontentloaded" });
+
+    // Dismiss cookie banners via JS
+    await page
+      .evaluate(() => {
+        const selectors = [
+          '[id*="cookie"] button[class*="accept"]',
+          '[id*="cookie"] button[class*="agree"]',
+          '[class*="cookie-banner"] button',
+          '[class*="consent"] button[class*="accept"]',
+          "#onetrust-accept-btn-handler",
+          ".cc-accept",
+          '[data-testid="cookie-policy-dialog-accept-button"]',
+        ];
+        for (const sel of selectors) {
+          const el = document.querySelector<HTMLElement>(sel);
+          if (el) {
+            el.click();
+            break;
+          }
+        }
+      })
+      .catch(() => {});
+
+    await page.waitForTimeout(2000);
+
+    const buffer = await page.screenshot({
+      type: "png",
+      clip: { x: 0, y: 0, width: 1440, height: 900 },
+    });
+
+    return Buffer.from(buffer).toString("base64");
+  } finally {
+    await browser.close();
   }
-
-  const data = (await res.json()) as {
-    lighthouseResult?: {
-      audits?: {
-        "final-screenshot"?: {
-          details?: { data?: string };
-        };
-      };
-    };
-  };
-
-  const dataUri =
-    data.lighthouseResult?.audits?.["final-screenshot"]?.details?.data;
-  if (!dataUri) {
-    throw new Error("No screenshot in PageSpeed response");
-  }
-
-  // dataUri is "data:image/jpeg;base64,..."
-  const base64 = dataUri.split(",")[1];
-  if (!base64) throw new Error("Invalid screenshot data URI");
-  return base64;
 }
 
 export async function captureScreenshot(url: string): Promise<string> {
-  // Primary: ScreenshotOne (paid, best quality)
+  // Primary: ScreenshotOne (paid, highest quality)
   if (SCREENSHOTONE_KEY()) {
     try {
       return await screenshotOne(url);
     } catch (err) {
       console.warn(
-        `[Screenshot] ScreenshotOne failed for ${url}: ${err instanceof Error ? err.message : err}. Trying free fallback.`,
+        `[Screenshot] ScreenshotOne failed for ${url}: ${err instanceof Error ? err.message : err}. Trying Bright Data Browser.`,
       );
     }
   }
 
-  // Fallback: Google PageSpeed Insights (free, no API key needed)
-  try {
-    return await freeScreenshot(url);
-  } catch (err) {
-    throw new Error(
-      `[Screenshot] All providers failed for ${url}: ${err instanceof Error ? err.message : err}`,
-    );
+  // Fallback: Bright Data Browser API (cloud Chromium, same stack as pipeline)
+  if (BRIGHT_DATA_BROWSER_AUTH()) {
+    try {
+      return await brightDataBrowserScreenshot(url);
+    } catch (err) {
+      throw new Error(
+        `[Screenshot] Bright Data Browser failed for ${url}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
   }
+
+  throw new Error(
+    `[Screenshot] No screenshot provider configured. Set SCREENSHOTONE_API_KEY or BRIGHT_DATA_BROWSER_AUTH.`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -114,10 +149,21 @@ export async function captureScreenshot(url: string): Promise<string> {
 
 /** Domains to exclude when resolving vendor URLs */
 const AGGREGATOR_DOMAINS = new Set([
-  "g2.com", "capterra.com", "getapp.com", "trustradius.com",
-  "softwareadvice.com", "techradar.com", "pcmag.com", "cnet.com",
-  "forbes.com", "gartner.com", "reddit.com", "quora.com",
-  "wikipedia.org", "youtube.com", "github.com",
+  "g2.com",
+  "capterra.com",
+  "getapp.com",
+  "trustradius.com",
+  "softwareadvice.com",
+  "techradar.com",
+  "pcmag.com",
+  "cnet.com",
+  "forbes.com",
+  "gartner.com",
+  "reddit.com",
+  "quora.com",
+  "wikipedia.org",
+  "youtube.com",
+  "github.com",
 ]);
 
 /**
@@ -147,18 +193,37 @@ function extractVendorNamesFromHeadings(markdown: string): string[] {
 
   // Pattern 2: Extract known tool/company names mentioned in headings
   const knownTools = [
-    "Bright Data", "Oxylabs", "Smartproxy", "Zyte", "ScraperAPI",
-    "Apify", "Crawlbase", "Scrapy", "Playwright", "Puppeteer",
-    "Crawlee", "Beautiful Soup", "Selenium", "Octoparse",
-    "ParseHub", "Diffbot", "Firecrawl", "PhantomBuster",
-    "Import.io", "Mozenda", "Scrapfly", "ScrapingBee",
-    "WebScraper.io", "Nimble", "Infatica",
+    "Bright Data",
+    "Oxylabs",
+    "Smartproxy",
+    "Zyte",
+    "ScraperAPI",
+    "Apify",
+    "Crawlbase",
+    "Scrapy",
+    "Playwright",
+    "Puppeteer",
+    "Crawlee",
+    "Beautiful Soup",
+    "Selenium",
+    "Octoparse",
+    "ParseHub",
+    "Diffbot",
+    "Firecrawl",
+    "PhantomBuster",
+    "Import.io",
+    "Mozenda",
+    "Scrapfly",
+    "ScrapingBee",
+    "WebScraper.io",
+    "Nimble",
+    "Infatica",
   ];
 
-  const headings = [...markdown.matchAll(/^#{2,3}\s+(.+)/gm)].map(m => m[1]);
+  const headings = [...markdown.matchAll(/^#{2,3}\s+(.+)/gm)].map((m) => m[1]);
   for (const tool of knownTools) {
     if (seen.has(tool.toLowerCase())) continue;
-    const mentioned = headings.some(h =>
+    const mentioned = headings.some((h) =>
       h.toLowerCase().includes(tool.toLowerCase()),
     );
     if (mentioned) {
@@ -193,7 +258,9 @@ async function resolveVendorUrl(
       if (!AGGREGATOR_DOMAINS.has(domain)) {
         return linkMatch[1];
       }
-    } catch { /* skip invalid */ }
+    } catch {
+      /* skip invalid */
+    }
   }
 
   // Step 2: Probe common domain patterns
@@ -235,7 +302,9 @@ export async function extractVendorUrls(
   const vendorNames = extractVendorNamesFromHeadings(markdown);
 
   if (vendorNames.length < 3) {
-    console.log(`[${jobId}] Not a listicle (only ${vendorNames.length} vendors detected). Skipping screenshots.`);
+    console.log(
+      `[${jobId}] Not a listicle (only ${vendorNames.length} vendors detected). Skipping screenshots.`,
+    );
     return [];
   }
 
@@ -276,9 +345,7 @@ export async function captureVendorScreenshots(
     return [];
   }
 
-  console.log(
-    `[${jobId}] Capturing screenshots for ${vendors.length} vendors`,
-  );
+  console.log(`[${jobId}] Capturing screenshots for ${vendors.length} vendors`);
 
   const results: VendorScreenshot[] = [];
 

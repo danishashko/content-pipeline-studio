@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
 interface NavItem {
@@ -130,6 +130,25 @@ function SchedulesIcon() {
   );
 }
 
+function DocsIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+}
+
 function SettingsIcon() {
   return (
     <svg
@@ -177,46 +196,70 @@ const navItems: NavItem[] = [
   { label: "Articles", href: "/articles", icon: <ArticlesIcon /> },
   { label: "Schedules", href: "/schedules", icon: <SchedulesIcon /> },
   { label: "Settings", href: "/settings", icon: <SettingsIcon /> },
+  { label: "Docs", href: "/docs", icon: <DocsIcon /> },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Close mobile sidebar when route changes
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   }
 
-  return (
+  const sidebarContent = (
     <aside
       style={{
-        width: collapsed ? "64px" : "256px",
-        minWidth: collapsed ? "64px" : "256px",
+        width: isMobile ? "256px" : collapsed ? "64px" : "256px",
+        minWidth: isMobile ? "256px" : collapsed ? "64px" : "256px",
         background: "var(--th-sidebar)",
         borderRight: "1px solid var(--th-border)",
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        transition: "width 0.2s ease, min-width 0.2s ease",
+        transition: isMobile
+          ? "transform 0.25s ease"
+          : "width 0.2s ease, min-width 0.2s ease",
         overflow: "hidden",
-        position: "relative",
-        zIndex: 20,
+        position: isMobile ? "fixed" : "relative",
+        top: isMobile ? 0 : undefined,
+        left: isMobile ? 0 : undefined,
+        zIndex: isMobile ? 100 : 20,
+        transform: isMobile
+          ? mobileOpen
+            ? "translateX(0)"
+            : "translateX(-100%)"
+          : "none",
       }}
     >
       {/* Logo */}
       <div
         style={{
-          padding: collapsed ? "20px 0" : "20px 16px",
+          padding: !isMobile && collapsed ? "20px 0" : "20px 16px",
           borderBottom: "1px solid var(--th-border)",
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          justifyContent: collapsed ? "center" : "flex-start",
+          justifyContent: !isMobile && collapsed ? "center" : "flex-start",
           minHeight: "64px",
         }}
       >
-        {collapsed ? (
+        {!isMobile && collapsed ? (
           <div
             style={{
               width: "32px",
@@ -275,16 +318,20 @@ export function Sidebar() {
       >
         {navItems.map((item) => {
           const active = isActive(item.href);
+          const isCollapsed = !isMobile && collapsed;
           return (
             <Link
               key={item.href}
               href={item.href}
-              title={collapsed ? item.label : undefined}
+              title={isCollapsed ? item.label : undefined}
+              onClick={() => {
+                if (isMobile) setMobileOpen(false);
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: collapsed ? 0 : "10px",
-                padding: collapsed ? "10px" : "10px 12px",
+                gap: isCollapsed ? 0 : "10px",
+                padding: isCollapsed ? "10px" : "10px 12px",
                 borderRadius: "8px",
                 textDecoration: "none",
                 color: active
@@ -294,7 +341,7 @@ export function Sidebar() {
                 fontWeight: active ? 600 : 500,
                 fontSize: "13px",
                 transition: "background 0.15s ease, color 0.15s ease",
-                justifyContent: collapsed ? "center" : "flex-start",
+                justifyContent: isCollapsed ? "center" : "flex-start",
                 position: "relative",
               }}
               onMouseEnter={(e) => {
@@ -329,7 +376,7 @@ export function Sidebar() {
                 />
               )}
               <span style={{ flexShrink: 0 }}>{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
+              {!isCollapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
@@ -345,45 +392,47 @@ export function Sidebar() {
           gap: "4px",
         }}
       >
-        <ThemeToggle collapsed={collapsed} />
-        <button
-          onClick={() => setCollapsed((v) => !v)}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: collapsed ? 0 : "10px",
-            width: "100%",
-            padding: collapsed ? "10px" : "10px 12px",
-            borderRadius: "8px",
-            border: "none",
-            background: "transparent",
-            color: "var(--th-text-muted)",
-            cursor: "pointer",
-            fontSize: "13px",
-            fontWeight: 500,
-            transition: "background 0.15s ease, color 0.15s ease",
-            justifyContent: collapsed ? "center" : "flex-start",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "var(--th-sidebar-hover)";
-            (e.currentTarget as HTMLButtonElement).style.color =
-              "var(--th-text)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "transparent";
-            (e.currentTarget as HTMLButtonElement).style.color =
-              "var(--th-text-muted)";
-          }}
-        >
-          <CollapseIcon collapsed={collapsed} />
-          {!collapsed && <span>Collapse</span>}
-        </button>
+        <ThemeToggle collapsed={!isMobile && collapsed} />
+        {!isMobile && (
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: collapsed ? 0 : "10px",
+              width: "100%",
+              padding: collapsed ? "10px" : "10px 12px",
+              borderRadius: "8px",
+              border: "none",
+              background: "transparent",
+              color: "var(--th-text-muted)",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 500,
+              transition: "background 0.15s ease, color 0.15s ease",
+              justifyContent: collapsed ? "center" : "flex-start",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background =
+                "var(--th-sidebar-hover)";
+              (e.currentTarget as HTMLButtonElement).style.color =
+                "var(--th-text)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background =
+                "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color =
+                "var(--th-text-muted)";
+            }}
+          >
+            <CollapseIcon collapsed={collapsed} />
+            {!collapsed && <span>Collapse</span>}
+          </button>
+        )}
 
         {/* Powered by Bright Data */}
-        {!collapsed && (
+        {(isMobile || !collapsed) && (
           <a
             href="https://brightdata.com?utm_source=content-pipeline-studio&utm_medium=demo&utm_campaign=content-system-bd"
             target="_blank"
@@ -417,5 +466,97 @@ export function Sidebar() {
         )}
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Mobile top bar — replaces floating hamburger, gives pages room to breathe */}
+      {isMobile && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "52px",
+            zIndex: 101,
+            background: "var(--th-sidebar)",
+            borderBottom: "1px solid var(--th-border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 16px",
+          }}
+        >
+          <div style={{ fontSize: "18px", color: "white", lineHeight: 1 }}>
+            <span style={{ fontWeight: 400 }}>bright</span>
+            <span style={{ fontWeight: 700 }}>data</span>
+          </div>
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              border: "1px solid var(--th-border)",
+              background: "transparent",
+              color: "var(--th-text-secondary)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {mobileOpen ? (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Mobile backdrop */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 99,
+          }}
+        />
+      )}
+
+      {/* Sidebar */}
+      {sidebarContent}
+    </>
   );
 }

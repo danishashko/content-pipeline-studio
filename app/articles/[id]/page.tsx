@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -399,6 +400,7 @@ function CollapsibleSection({ title, children, defaultOpen = false }: { title: s
 
 export default function ArticleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const isMobile = useIsMobile();
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -434,11 +436,19 @@ export default function ArticleDetailPage() {
   }, [id]);
 
   async function handleCopy() {
-    const content = article?.validatedOutput?.markdownContent
-      ?? article?.articleOutput?.markdownContent
-      ?? "";
+    const output = article?.validatedOutput ?? article?.articleOutput;
+    const content = output?.markdownContent ?? "";
+    const faqs = output?.faqs ?? [];
+
+    const faqMarkdown = faqs.length > 0
+      ? "\n\n## Frequently Asked Questions\n\n" +
+        faqs.map((f: { question: string; answer: string }) =>
+          `### ${f.question}\n\n${f.answer}`
+        ).join("\n\n")
+      : "";
+
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(content + faqMarkdown);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -474,9 +484,9 @@ export default function ArticleDetailPage() {
         </div>
         <div className="skeleton" style={{ height: "36px", width: "70%", borderRadius: "8px" }} />
         <div className="skeleton" style={{ height: "80px", borderRadius: "12px" }} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 320px", gap: "24px" }}>
           <div className="skeleton" style={{ height: "500px", borderRadius: "12px" }} />
-          <div className="skeleton" style={{ height: "500px", borderRadius: "12px" }} />
+          {!isMobile && <div className="skeleton" style={{ height: "500px", borderRadius: "12px" }} />}
         </div>
       </div>
     );
@@ -538,8 +548,8 @@ export default function ArticleDetailPage() {
 
       {/* Article header */}
       <div>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", marginBottom: "16px" }}>
-          <h1 style={{ fontSize: "28px", fontWeight: 800, color: "var(--th-text)", margin: 0, lineHeight: 1.25, flex: 1 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "16px" }}>
+          <h1 style={{ fontSize: isMobile ? "22px" : "28px", fontWeight: 800, color: "var(--th-text)", margin: 0, lineHeight: 1.25, flex: 1, wordBreak: "break-word" }}>
             {metadata?.title ?? article.keyword ?? "Untitled"}
           </h1>
           <button
@@ -612,9 +622,9 @@ export default function ArticleDetailPage() {
       </div>
 
       {/* Two-column: content + source verification */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "24px", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 320px", gap: "24px", alignItems: "start" }}>
         {/* Left: Article content */}
-        <div className="card" style={{ padding: "32px 36px" }}>
+        <div className="card" style={{ padding: isMobile ? "20px 16px" : "32px 36px", wordBreak: "break-word", overflowWrap: "break-word", minWidth: 0 }}>
           <div style={{ borderBottom: "1px solid var(--th-border)", marginBottom: "24px", paddingBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <h2 style={{ fontSize: "13px", fontWeight: 700, color: "var(--th-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>
               Article Content
