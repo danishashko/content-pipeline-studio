@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { apiPath } from "@/lib/base-path";
 
 interface ApiStatus {
   openrouter: boolean;
@@ -230,7 +231,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/status")
+    fetch(apiPath("/api/status"))
       .then((r) => r.json())
       .then((d) => setStatus(d))
       .catch((err) => setError(err.message))

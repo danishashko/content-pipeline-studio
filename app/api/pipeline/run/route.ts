@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { runPipeline } from "@/lib/pipeline/orchestrator";
+import { enforceIpLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = await enforceIpLimit(request);
+    if (!limit.ok) return limit.response;
+
     const body = await request.json();
     const { keywordId, email } = body;
 

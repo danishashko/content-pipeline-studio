@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { apiPath } from "@/lib/base-path";
 
 interface ArticleRow {
   id: string;
@@ -183,9 +185,9 @@ export default function DashboardPage() {
     async function loadDashboard() {
       try {
         const [sitesRes, keywordsRes, articlesRes] = await Promise.allSettled([
-          fetch("/api/sites"),
-          fetch("/api/keywords?status=pending"),
-          fetch("/api/articles?limit=10"),
+          fetch(apiPath("/api/sites")),
+          fetch(apiPath("/api/keywords?status=pending")),
+          fetch(apiPath("/api/articles?limit=10")),
         ]);
 
         let sitesCount = 0;
@@ -488,7 +490,7 @@ export default function DashboardPage() {
                 Last 10 generated
               </p>
             </div>
-            <a
+            <Link
               href="/articles"
               style={{
                 fontSize: "13px",
@@ -498,7 +500,7 @@ export default function DashboardPage() {
               }}
             >
               View all
-            </a>
+            </Link>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -560,7 +562,7 @@ export default function DashboardPage() {
                       }
                     >
                       <td style={{ padding: "12px 16px", maxWidth: "220px" }}>
-                        <a
+                        <Link
                           href={`/articles/${article.id}`}
                           style={{
                             fontSize: "13px",
@@ -574,7 +576,7 @@ export default function DashboardPage() {
                           }}
                         >
                           {article.title}
-                        </a>
+                        </Link>
                       </td>
                       <td
                         style={{
@@ -651,7 +653,7 @@ export default function DashboardPage() {
                 Active jobs
               </p>
             </div>
-            <a
+            <Link
               href="/pipeline"
               style={{
                 fontSize: "13px",
@@ -661,7 +663,7 @@ export default function DashboardPage() {
               }}
             >
               Monitor
-            </a>
+            </Link>
           </div>
           <div style={{ padding: "8px 0" }}>
             {loading ? (

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { apiPath } from "@/lib/base-path";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -408,7 +409,7 @@ export default function ArticleDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/articles/${id}`)
+    fetch(apiPath(`/api/articles/${id}`))
       .then((r) => r.json())
       .then((d) => {
         // API returns { job: {...} } with snake_case fields

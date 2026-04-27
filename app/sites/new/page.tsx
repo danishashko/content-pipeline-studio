@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { apiPath } from "@/lib/base-path";
 
 interface ProductPage {
   url: string;
@@ -424,7 +425,7 @@ export default function NewSitePage() {
           })),
       };
 
-      const res = await fetch("/api/sites", {
+      const res = await fetch(apiPath("/api/sites"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiPath } from "@/lib/base-path";
 
 interface SiteConfig {
   slug: string;
@@ -328,9 +329,9 @@ export default function SiteDetailPage() {
     async function load() {
       try {
         const [siteRes, kwRes, artRes] = await Promise.allSettled([
-          fetch(`/api/sites/${id}`),
-          fetch(`/api/keywords?siteId=${id}`),
-          fetch(`/api/articles?siteId=${id}`),
+          fetch(apiPath(`/api/sites/${id}`)),
+          fetch(apiPath(`/api/keywords?siteId=${id}`)),
+          fetch(apiPath(`/api/articles?siteId=${id}`)),
         ]);
 
         if (siteRes.status === "fulfilled" && siteRes.value.ok) {
@@ -426,7 +427,7 @@ export default function SiteDetailPage() {
         } : undefined,
       };
 
-      const res = await fetch(`/api/sites/${id}`, {
+      const res = await fetch(apiPath(`/api/sites/${id}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config: updatedConfig }),
@@ -498,7 +499,7 @@ export default function SiteDetailPage() {
               onClick={async () => {
                 setDeleting(true);
                 try {
-                  const res = await fetch(`/api/sites/${id}`, { method: "DELETE" });
+                  const res = await fetch(apiPath(`/api/sites/${id}`), { method: "DELETE" });
                   if (!res.ok) throw new Error("Failed to delete");
                   router.push("/sites");
                 } catch {
@@ -717,7 +718,7 @@ export default function SiteDetailPage() {
                     if (e.key === "Enter" && !suggestLoading) {
                       setSuggestError(null);
                       setSuggestLoading(true);
-                      fetch("/api/keywords/suggest", {
+                      fetch(apiPath("/api/keywords/suggest"), {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ siteId: id, seedKeyword: suggestSeed || undefined }),
@@ -748,7 +749,7 @@ export default function SiteDetailPage() {
                   onClick={() => {
                     setSuggestError(null);
                     setSuggestLoading(true);
-                    fetch("/api/keywords/suggest", {
+                    fetch(apiPath("/api/keywords/suggest"), {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ siteId: id, seedKeyword: suggestSeed || undefined }),
@@ -862,7 +863,7 @@ export default function SiteDetailPage() {
                               disabled={isAdded}
                               onClick={() => {
                                 if (isAdded) return;
-                                fetch("/api/keywords", {
+                                fetch(apiPath("/api/keywords"), {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ siteId: id, keyword: s.keyword, priority: 0, targetWordCount: 2000 }),

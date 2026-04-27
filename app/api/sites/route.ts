@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { enforceIpLimit } from "@/lib/rate-limit";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -35,12 +36,15 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { slug, name, config } = body;
+    const limit = await enforceIpLimit(request);
+    if (!limit.ok) return limit.response;
 
-    if (!slug || !name) {
+    const body = await request.json();
+    const { slug, companyName } = body;
+
+    if (!slug || !companyName) {
       return NextResponse.json(
-        { error: "slug and name are required" },
+        { error: "slug and companyName are required" },
         { status: 400 },
       );
     }
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("sites")
-      .insert({ slug, name, config: config ?? {} })
+      .insert({ slug, name: companyName, config: body })
       .select()
       .single();
 

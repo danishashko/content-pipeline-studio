@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import Link from "next/link";
+import { apiPath } from "@/lib/base-path";
 
 interface Site {
   id: string;
@@ -271,7 +272,7 @@ export default function SitesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/sites")
+    fetch(apiPath("/api/sites"))
       .then((r) => r.json())
       .then((data) => {
         const raw = Array.isArray(data) ? data : (data.sites ?? []);

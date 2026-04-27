@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiPath } from "@/lib/base-path";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth")
+    fetch(apiPath("/api/auth"))
       .then((r) => setAuthed(r.ok))
       .catch(() => setAuthed(false));
   }, []);
@@ -62,7 +63,7 @@ function LeadGate({ onSuccess }: { onSuccess: () => void }) {
     setError("");
 
     try {
-      const res = await fetch("/api/auth", {
+      const res = await fetch(apiPath("/api/auth"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

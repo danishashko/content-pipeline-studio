@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import Link from "next/link";
 import { StageProgress } from "@/components/pipeline/stage-progress";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { apiPath } from "@/lib/base-path";
 
 interface PipelineJob {
   id: string;
@@ -152,7 +154,7 @@ export default function PipelinePage() {
 
   const loadJobs = useCallback(async () => {
     try {
-      const res = await fetch("/api/keywords");
+      const res = await fetch(apiPath("/api/keywords"));
       if (!res.ok) return;
       const data = await res.json();
       const arr: PipelineJob[] = (
@@ -214,7 +216,7 @@ export default function PipelinePage() {
   async function loadJobDetail(keywordId: string) {
     setDetailLoading(keywordId);
     try {
-      const res = await fetch(`/api/pipeline/status/${keywordId}?by=keyword`);
+      const res = await fetch(apiPath(`/api/pipeline/status/${keywordId}?by=keyword`));
       if (res.ok) {
         const data = await res.json();
         const j = data.job;
@@ -825,9 +827,9 @@ export default function PipelinePage() {
               }}
             >
               Run a keyword from the{" "}
-              <a href="/queue" style={{ color: "var(--th-text-accent)" }}>
+              <Link href="/queue" style={{ color: "var(--th-text-accent)" }}>
                 Queue
-              </a>{" "}
+              </Link>{" "}
               to start the pipeline.
             </p>
           </div>

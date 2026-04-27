@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { apiPath } from "@/lib/base-path";
 
 interface Site {
   id: string;
@@ -189,8 +190,8 @@ export default function SchedulesPage() {
   const loadData = useCallback(async () => {
     try {
       const [schRes, sitesRes] = await Promise.allSettled([
-        fetch("/api/schedules"),
-        fetch("/api/sites"),
+        fetch(apiPath("/api/schedules")),
+        fetch(apiPath("/api/sites")),
       ]);
       if (schRes.status === "fulfilled" && schRes.value.ok) {
         const d = await schRes.value.json();
@@ -226,7 +227,7 @@ export default function SchedulesPage() {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/schedules", {
+      const res = await fetch(apiPath("/api/schedules"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -260,7 +261,7 @@ export default function SchedulesPage() {
     if (!confirm("Delete this schedule?")) return;
     setDeletingId(id);
     try {
-      const res = await fetch("/api/schedules", {
+      const res = await fetch(apiPath("/api/schedules"), {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -277,7 +278,7 @@ export default function SchedulesPage() {
   async function handleToggle(schedule: Schedule) {
     setTogglingId(schedule.id);
     try {
-      const res = await fetch("/api/schedules", {
+      const res = await fetch(apiPath("/api/schedules"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: schedule.id, enabled: !schedule.enabled }),

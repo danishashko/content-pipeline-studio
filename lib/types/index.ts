@@ -49,7 +49,7 @@ export const SiteConfigSchema = z.object({
   ),
 
   cta: z.object({
-    url: z.string().min(1),
+    url: z.string(),
     defaultText: z.string(),
     fallbackSentence: z.string().optional(),
   }),

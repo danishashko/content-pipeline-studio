@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { apiPath } from "@/lib/base-path";
 
 interface Site {
   id: string;
@@ -127,11 +128,11 @@ export default function QueuePage() {
     try {
       const url =
         siteFilter !== "all"
-          ? `/api/keywords?siteId=${siteFilter}`
-          : "/api/keywords";
+          ? apiPath(`/api/keywords?siteId=${siteFilter}`)
+          : apiPath("/api/keywords");
       const [kwRes, sitesRes] = await Promise.allSettled([
         fetch(url),
-        fetch("/api/sites"),
+        fetch(apiPath("/api/sites")),
       ]);
 
       if (kwRes.status === "fulfilled" && kwRes.value.ok) {
@@ -172,7 +173,7 @@ export default function QueuePage() {
     setRunningId(keywordId);
     setLimitReached(false);
     try {
-      const res = await fetch(`/api/pipeline/run`, {
+      const res = await fetch(apiPath(`/api/pipeline/run`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keywordId, email }),
@@ -194,7 +195,7 @@ export default function QueuePage() {
     if (!confirm("Delete this keyword?")) return;
     setDeletingId(keywordId);
     try {
-      const res = await fetch(`/api/keywords/${keywordId}`, {
+      const res = await fetch(apiPath(`/api/keywords/${keywordId}`), {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -218,7 +219,7 @@ export default function QueuePage() {
       .filter(Boolean);
 
     try {
-      const res = await fetch("/api/keywords/bulk", {
+      const res = await fetch(apiPath("/api/keywords/bulk"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keywords: kwLines, siteId: bulkSiteId }),

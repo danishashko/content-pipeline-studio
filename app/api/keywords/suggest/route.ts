@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { complete, WRITER_MODEL } from "@/lib/openrouter";
+import { enforceIpLimit } from "@/lib/rate-limit";
 import {
   getRelatedKeywords,
   getKeywordSuggestions,
@@ -27,6 +28,9 @@ function difficultyLabel(competition: number): "low" | "medium" | "high" {
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = await enforceIpLimit(request);
+    if (!limit.ok) return limit.response;
+
     const body = await request.json();
     const { siteId, seedKeyword } = body as {
       siteId?: string;

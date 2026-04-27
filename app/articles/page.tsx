@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { apiPath } from "@/lib/base-path";
 
 interface Site {
   id: string;
@@ -76,11 +77,11 @@ export default function ArticlesPage() {
     try {
       const url =
         siteFilter !== "all"
-          ? `/api/articles?siteId=${siteFilter}`
-          : "/api/articles";
+          ? apiPath(`/api/articles?siteId=${siteFilter}`)
+          : apiPath("/api/articles");
       const [artRes, sitesRes] = await Promise.allSettled([
         fetch(url),
-        fetch("/api/sites"),
+        fetch(apiPath("/api/sites")),
       ]);
       if (artRes.status === "fulfilled" && artRes.value.ok) {
         const d = await artRes.value.json();
@@ -114,7 +115,7 @@ export default function ArticlesPage() {
 
   async function handleExport(article: Article) {
     try {
-      const res = await fetch(`/api/articles/${article.id}`);
+      const res = await fetch(apiPath(`/api/articles/${article.id}`));
       if (!res.ok) throw new Error("Failed to fetch article");
       const data = await res.json();
       const content =
