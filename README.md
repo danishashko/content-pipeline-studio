@@ -212,17 +212,6 @@ supabase/
 
 ---
 
-## Roadmap
-
-- [ ] WordPress auto-publish with Yoast SEO metadata
-- [ ] Image generation per section (not just featured image)
-- [ ] Multi-language support
-- [ ] A/B title testing
-- [ ] Google Search Console integration for performance tracking
-- [ ] Keyword clustering and content gap analysis
-
----
-
 ## Author
 
 **Daniel Shashko** — GTM Strategy × AI Automations
