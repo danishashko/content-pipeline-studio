@@ -228,7 +228,6 @@ supabase/
 **Daniel Shashko** — GTM Strategy × AI Automations
 
 - 🌐 [LinkedIn](https://www.linkedin.com/in/danielshashko)
-- 🐦 Demos & updates: [@danielshashko](https://twitter.com/danielshashko)
 
 Built and demoed live at **BrightonSEO AI Conference 2026**.
 
