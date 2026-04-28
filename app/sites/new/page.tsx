@@ -285,14 +285,36 @@ function SectionCard({
   );
 }
 
+function deriveSlug(url: string): string {
+  try {
+    const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return parsed.hostname.replace(/^www\./, "").replace(/\./g, "-");
+  } catch {
+    return url
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+}
+
+function deriveHostname(url: string): string {
+  try {
+    const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return parsed.hostname;
+  } catch {
+    return url;
+  }
+}
+
 export default function NewSitePage() {
   const router = useRouter();
   const isMobile = useIsMobile();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"simple" | "detailed">("simple");
 
   // Section 1: Identity
-  const [slug, setSlug] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [tagline, setTagline] = useState("");
   const [companyDescription, setCompanyDescription] = useState("");
@@ -380,6 +402,12 @@ export default function NewSitePage() {
     setSubmitting(true);
 
     try {
+      const slug = deriveSlug(websiteUrl);
+      const hostname = deriveHostname(websiteUrl);
+      const effectiveWpUrl =
+        wpBaseUrl ||
+        (websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`);
+
       const parsedPainPoints = Object.fromEntries(
         painPoints
           .filter((p) => p.category && p.description)
@@ -391,16 +419,19 @@ export default function NewSitePage() {
         companyName,
         tagline,
         companyDescription,
-        wpBaseUrl,
+        wpBaseUrl: effectiveWpUrl,
         wpUsername,
         wpAppPassword,
         mainSitemapUrl: mainSitemapUrl || undefined,
         blogSitemapUrl: blogSitemapUrl || undefined,
         industries,
         competitors,
-        cta: { url: ctaUrl, defaultText: ctaText },
+        cta: {
+          url: ctaUrl || effectiveWpUrl,
+          defaultText: ctaText || `Visit ${companyName}`,
+        },
         productPages: productPages.filter((p) => p.url && p.title),
-        domains: wpBaseUrl ? [new URL(wpBaseUrl).hostname] : [],
+        domains: [hostname],
         products: [],
         coreValues: [],
         messagingPrinciples: messagingPrinciples
@@ -525,11 +556,54 @@ export default function NewSitePage() {
         </div>
       )}
 
+      {/* Mode toggle */}
+      <div
+        style={{
+          display: "flex",
+          gap: "0",
+          borderRadius: "8px",
+          border: "1px solid var(--th-border)",
+          overflow: "hidden",
+          width: "fit-content",
+        }}
+      >
+        {(["simple", "detailed"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            style={{
+              padding: "8px 20px",
+              border: "none",
+              background: mode === m ? "var(--th-accent)" : "var(--th-card)",
+              color: mode === m ? "#fff" : "var(--th-text-secondary)",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+              textTransform: "capitalize",
+            }}
+          >
+            {m === "simple" ? "⚡ Simple" : "⚙ Detailed"}
+          </button>
+        ))}
+      </div>
+      {mode === "simple" && (
+        <p
+          style={{
+            fontSize: "13px",
+            color: "var(--th-text-muted)",
+            margin: "-12px 0 0",
+          }}
+        >
+          Just the essentials — you can add more config later.
+        </p>
+      )}
+
       <form
         onSubmit={handleSubmit}
         style={{ display: "flex", flexDirection: "column", gap: "20px" }}
       >
-        {/* Section 1 */}
+        {/* Section 1: always visible */}
         <SectionCard
           title="Identity"
           description="Basic site information and branding"
@@ -537,21 +611,25 @@ export default function NewSitePage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
               gap: "16px",
             }}
           >
             <FormField
-              label="Slug"
-              id="slug"
+              label="Website URL"
+              id="websiteUrl"
               required
-              placeholder="acme-corp"
-              value={slug}
-              onChange={setSlug}
-              hint="Unique identifier, lowercase with hyphens"
+              placeholder="https://acme.com"
+              value={websiteUrl}
+              onChange={setWebsiteUrl}
+              hint={
+                websiteUrl
+                  ? `Slug: ${deriveSlug(websiteUrl)}`
+                  : "Your site's homepage URL"
+              }
             />
             <FormField
-              label="Company Name"
+              label="Brand Name"
               id="companyName"
               required
               placeholder="Acme Corp"
@@ -559,577 +637,600 @@ export default function NewSitePage() {
               onChange={setCompanyName}
             />
           </div>
-          <FormField
-            label="Tagline"
-            id="tagline"
-            placeholder="We make great things"
-            value={tagline}
-            onChange={setTagline}
-          />
-          <FormField
-            label="Company Description"
-            id="companyDescription"
-            placeholder="Brief description of the company..."
-            value={companyDescription}
-            onChange={setCompanyDescription}
-            textarea
-          />
+          {mode === "detailed" && (
+            <>
+              <FormField
+                label="Tagline"
+                id="tagline"
+                placeholder="We make great things"
+                value={tagline}
+                onChange={setTagline}
+              />
+              <FormField
+                label="Company Description"
+                id="companyDescription"
+                placeholder="Brief description of the company..."
+                value={companyDescription}
+                onChange={setCompanyDescription}
+                textarea
+              />
+            </>
+          )}
         </SectionCard>
 
-        {/* Section 2 */}
-        <SectionCard
-          title="WordPress"
-          description="Connection details for WordPress REST API"
-        >
-          <FormField
-            label="WordPress Base URL"
-            id="wpBaseUrl"
-            required
-            type="url"
-            placeholder="https://acme.com"
-            value={wpBaseUrl}
-            onChange={setWpBaseUrl}
-            hint="The root URL of your WordPress site"
-          />
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "16px",
-            }}
+        {/* Section 2: detailed only */}
+        {mode === "detailed" && (
+          <SectionCard
+            title="WordPress"
+            description="Connection details for WordPress REST API publishing"
           >
             <FormField
-              label="WP Username"
-              id="wpUsername"
-              placeholder="admin"
-              value={wpUsername}
-              onChange={setWpUsername}
-            />
-            <FormField
-              label="Application Password"
-              id="wpAppPassword"
-              type="password"
-              placeholder="xxxx xxxx xxxx xxxx"
-              value={wpAppPassword}
-              onChange={setWpAppPassword}
-              hint="Generate in WP Admin > Users > Profile"
-            />
-          </div>
-        </SectionCard>
-
-        {/* Section 3 */}
-        <SectionCard
-          title="Content Strategy"
-          description="Industries, competitors, and call-to-action settings"
-        >
-          <TagInput
-            label="Industries"
-            placeholder="Add industry tags..."
-            tags={industries}
-            onChange={setIndustries}
-          />
-          <TagInput
-            label="Competitors"
-            placeholder="Add competitor domains..."
-            tags={competitors}
-            onChange={setCompetitors}
-          />
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "16px",
-            }}
-          >
-            <FormField
-              label="CTA URL"
-              id="ctaUrl"
+              label="WordPress Base URL"
+              id="wpBaseUrl"
               type="url"
-              placeholder="https://acme.com/get-started"
-              value={ctaUrl}
-              onChange={setCtaUrl}
+              placeholder="https://acme.com"
+              value={wpBaseUrl}
+              onChange={setWpBaseUrl}
+              hint="If different from Website URL. Leave blank to use Website URL."
             />
-            <FormField
-              label="CTA Text"
-              id="ctaText"
-              placeholder="Get Started Free"
-              value={ctaText}
-              onChange={setCtaText}
-            />
-          </div>
-        </SectionCard>
-
-        {/* Section 4 */}
-        <SectionCard
-          title="Product Pages"
-          description="Link key product/service pages to improve internal linking"
-        >
-          {productPages.length === 0 ? (
             <div
               style={{
-                padding: "24px",
-                border: "2px dashed var(--th-border)",
-                borderRadius: "8px",
-                textAlign: "center",
-                color: "var(--th-text-muted)",
-                fontSize: "13px",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
               }}
             >
-              No product pages added yet
+              <FormField
+                label="WP Username"
+                id="wpUsername"
+                placeholder="admin"
+                value={wpUsername}
+                onChange={setWpUsername}
+              />
+              <FormField
+                label="Application Password"
+                id="wpAppPassword"
+                type="password"
+                placeholder="xxxx xxxx xxxx xxxx"
+                value={wpAppPassword}
+                onChange={setWpAppPassword}
+                hint="Generate in WP Admin > Users > Profile"
+              />
             </div>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          </SectionCard>
+        )}
+
+        {/* Sections 3–8: detailed only */}
+        {mode === "detailed" && (
+          <>
+            <SectionCard
+              title="Content Strategy"
+              description="Industries, competitors, and call-to-action settings"
             >
-              {productPages.map((product, idx) => (
+              <TagInput
+                label="Industries"
+                placeholder="Add industry tags..."
+                tags={industries}
+                onChange={setIndustries}
+              />
+              <TagInput
+                label="Competitors"
+                placeholder="Add competitor domains..."
+                tags={competitors}
+                onChange={setCompetitors}
+              />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "16px",
+                }}
+              >
+                <FormField
+                  label="CTA URL"
+                  id="ctaUrl"
+                  type="url"
+                  placeholder="https://acme.com/get-started"
+                  value={ctaUrl}
+                  onChange={setCtaUrl}
+                />
+                <FormField
+                  label="CTA Text"
+                  id="ctaText"
+                  placeholder="Get Started Free"
+                  value={ctaText}
+                  onChange={setCtaText}
+                />
+              </div>
+            </SectionCard>
+
+            {/* Section 4 */}
+            <SectionCard
+              title="Product Pages"
+              description="Link key product/service pages to improve internal linking"
+            >
+              {productPages.length === 0 ? (
                 <div
-                  key={idx}
                   style={{
-                    padding: "16px",
+                    padding: "24px",
+                    border: "2px dashed var(--th-border)",
                     borderRadius: "8px",
-                    background: "var(--th-inset)",
-                    border: "1px solid var(--th-border)",
+                    textAlign: "center",
+                    color: "var(--th-text-muted)",
+                    fontSize: "13px",
+                  }}
+                >
+                  No product pages added yet
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                  }}
+                >
+                  {productPages.map((product, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: "16px",
+                        borderRadius: "8px",
+                        background: "var(--th-inset)",
+                        border: "1px solid var(--th-border)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "var(--th-text-muted)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          Product {idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeProductPage(idx)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "var(--th-danger)",
+                            fontSize: "13px",
+                            fontWeight: 500,
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                            transition: "background 0.15s ease",
+                          }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background =
+                              "var(--th-danger-soft)")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background = "none")
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "12px",
+                        }}
+                      >
+                        <FormField
+                          label="URL"
+                          id={`pp-url-${idx}`}
+                          type="url"
+                          placeholder="https://..."
+                          value={product.url}
+                          onChange={(v) => updateProductPage(idx, "url", v)}
+                        />
+                        <FormField
+                          label="Title"
+                          id={`pp-title-${idx}`}
+                          placeholder="Product Name"
+                          value={product.title}
+                          onChange={(v) => updateProductPage(idx, "title", v)}
+                        />
+                      </div>
+                      <FormField
+                        label="Description"
+                        id={`pp-desc-${idx}`}
+                        placeholder="Brief description..."
+                        value={product.description}
+                        onChange={(v) =>
+                          updateProductPage(idx, "description", v)
+                        }
+                        textarea
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={addProductPage}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  border: "1px dashed var(--th-border-hover)",
+                  background: "transparent",
+                  color: "var(--th-text-secondary)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "background 0.15s ease, border-color 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "var(--th-inset)";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor =
+                    "var(--th-accent)";
+                  (e.currentTarget as HTMLButtonElement).style.color =
+                    "var(--th-text-accent)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "transparent";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor =
+                    "var(--th-border-hover)";
+                  (e.currentTarget as HTMLButtonElement).style.color =
+                    "var(--th-text-secondary)";
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Product Page
+              </button>
+            </SectionCard>
+
+            {/* Section 5: Sitemaps */}
+            <SectionCard
+              title="Sitemaps"
+              description="Optional — helps the pipeline discover existing content for internal linking"
+            >
+              <FormField
+                label="Main Sitemap URL"
+                id="mainSitemapUrl"
+                type="url"
+                placeholder="https://acme.com/sitemap.xml"
+                value={mainSitemapUrl}
+                onChange={setMainSitemapUrl}
+              />
+              <FormField
+                label="Blog Sitemap URL"
+                id="blogSitemapUrl"
+                type="url"
+                placeholder="https://acme.com/blog-sitemap.xml"
+                value={blogSitemapUrl}
+                onChange={setBlogSitemapUrl}
+              />
+            </SectionCard>
+
+            {/* Section 6: Brand Voice */}
+            <SectionCard
+              title="Brand Voice"
+              description="Optional — shapes article tone and keeps the writer on-brand"
+            >
+              <FormField
+                label="Messaging Principles"
+                id="messagingPrinciples"
+                placeholder={
+                  "One principle per line, e.g.:\nLead with data, not claims\nAvoid buzzwords like 'game-changing'\nAlways cite the source of statistics"
+                }
+                value={messagingPrinciples}
+                onChange={setMessagingPrinciples}
+                textarea
+                hint="Each line becomes a writing rule for the AI"
+              />
+              <FormField
+                label="Insight Guardrails"
+                id="insightGuardrails"
+                placeholder={
+                  "One rule per line, e.g.:\nNever claim 100% uptime\nDo not compare pricing directly\nAvoid naming specific customer losses"
+                }
+                value={insightGuardrails}
+                onChange={setInsightGuardrails}
+                textarea
+                hint="Things the AI should never say or claim"
+              />
+            </SectionCard>
+
+            {/* Section 7: Pain Points */}
+            <SectionCard
+              title="Customer Pain Points"
+              description="Optional — helps the AI frame articles around real buyer problems"
+            >
+              {painPoints.length === 0 ? (
+                <div
+                  style={{
+                    padding: "24px",
+                    border: "2px dashed var(--th-border)",
+                    borderRadius: "8px",
+                    textAlign: "center",
+                    color: "var(--th-text-muted)",
+                    fontSize: "13px",
+                  }}
+                >
+                  No pain points added yet
+                </div>
+              ) : (
+                <div
+                  style={{
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span
+                  {painPoints.map((pp, idx) => (
+                    <div
+                      key={idx}
                       style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "var(--th-text-muted)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
+                        display: "grid",
+                        gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr auto",
+                        gap: "10px",
+                        alignItems: "start",
                       }}
                     >
-                      Product {idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeProductPage(idx)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--th-danger)",
-                        fontSize: "13px",
-                        fontWeight: 500,
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        transition: "background 0.15s ease",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "var(--th-danger-soft)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "none")
-                      }
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "12px",
-                    }}
-                  >
-                    <FormField
-                      label="URL"
-                      id={`pp-url-${idx}`}
-                      type="url"
-                      placeholder="https://..."
-                      value={product.url}
-                      onChange={(v) => updateProductPage(idx, "url", v)}
-                    />
-                    <FormField
-                      label="Title"
-                      id={`pp-title-${idx}`}
-                      placeholder="Product Name"
-                      value={product.title}
-                      onChange={(v) => updateProductPage(idx, "title", v)}
-                    />
-                  </div>
-                  <FormField
-                    label="Description"
-                    id={`pp-desc-${idx}`}
-                    placeholder="Brief description..."
-                    value={product.description}
-                    onChange={(v) => updateProductPage(idx, "description", v)}
-                    textarea
-                  />
+                      <FormField
+                        label={idx === 0 ? "Category" : ""}
+                        id={`pp-cat-${idx}`}
+                        placeholder="e.g. Data Quality"
+                        value={pp.category}
+                        onChange={(v) => updatePainPoint(idx, "category", v)}
+                      />
+                      <FormField
+                        label={idx === 0 ? "Description" : ""}
+                        id={`pp-desc-${idx}`}
+                        placeholder="Teams spend 40% of time cleaning scraped data..."
+                        value={pp.description}
+                        onChange={(v) => updatePainPoint(idx, "description", v)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePainPoint(idx)}
+                        style={{
+                          marginTop: idx === 0 ? "24px" : "0",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--th-danger)",
+                          fontSize: "18px",
+                          padding: "8px",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={addProductPage}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 16px",
-              borderRadius: "8px",
-              border: "1px dashed var(--th-border-hover)",
-              background: "transparent",
-              color: "var(--th-text-secondary)",
-              fontSize: "13px",
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "background 0.15s ease, border-color 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "var(--th-inset)";
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                "var(--th-accent)";
-              (e.currentTarget as HTMLButtonElement).style.color =
-                "var(--th-text-accent)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "transparent";
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                "var(--th-border-hover)";
-              (e.currentTarget as HTMLButtonElement).style.color =
-                "var(--th-text-secondary)";
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Product Page
-          </button>
-        </SectionCard>
+              )}
+              <button
+                type="button"
+                onClick={addPainPoint}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  border: "1px dashed var(--th-border-hover)",
+                  background: "transparent",
+                  color: "var(--th-text-secondary)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "var(--th-inset)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "transparent";
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Pain Point
+              </button>
+            </SectionCard>
 
-        {/* Section 5: Sitemaps */}
-        <SectionCard
-          title="Sitemaps"
-          description="Optional — helps the pipeline discover existing content for internal linking"
-        >
-          <FormField
-            label="Main Sitemap URL"
-            id="mainSitemapUrl"
-            type="url"
-            placeholder="https://acme.com/sitemap.xml"
-            value={mainSitemapUrl}
-            onChange={setMainSitemapUrl}
-          />
-          <FormField
-            label="Blog Sitemap URL"
-            id="blogSitemapUrl"
-            type="url"
-            placeholder="https://acme.com/blog-sitemap.xml"
-            value={blogSitemapUrl}
-            onChange={setBlogSitemapUrl}
-          />
-        </SectionCard>
-
-        {/* Section 6: Brand Voice */}
-        <SectionCard
-          title="Brand Voice"
-          description="Optional — shapes article tone and keeps the writer on-brand"
-        >
-          <FormField
-            label="Messaging Principles"
-            id="messagingPrinciples"
-            placeholder={
-              "One principle per line, e.g.:\nLead with data, not claims\nAvoid buzzwords like 'game-changing'\nAlways cite the source of statistics"
-            }
-            value={messagingPrinciples}
-            onChange={setMessagingPrinciples}
-            textarea
-            hint="Each line becomes a writing rule for the AI"
-          />
-          <FormField
-            label="Insight Guardrails"
-            id="insightGuardrails"
-            placeholder={
-              "One rule per line, e.g.:\nNever claim 100% uptime\nDo not compare pricing directly\nAvoid naming specific customer losses"
-            }
-            value={insightGuardrails}
-            onChange={setInsightGuardrails}
-            textarea
-            hint="Things the AI should never say or claim"
-          />
-        </SectionCard>
-
-        {/* Section 7: Pain Points */}
-        <SectionCard
-          title="Customer Pain Points"
-          description="Optional — helps the AI frame articles around real buyer problems"
-        >
-          {painPoints.length === 0 ? (
-            <div
-              style={{
-                padding: "24px",
-                border: "2px dashed var(--th-border)",
-                borderRadius: "8px",
-                textAlign: "center",
-                color: "var(--th-text-muted)",
-                fontSize: "13px",
-              }}
+            {/* Section 8: Case Studies */}
+            <SectionCard
+              title="Case Studies"
+              description="Optional — gives the AI real proof points to reference in articles"
             >
-              No pain points added yet
-            </div>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
-              {painPoints.map((pp, idx) => (
+              {caseStudies.length === 0 ? (
                 <div
-                  key={idx}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr auto",
-                    gap: "10px",
-                    alignItems: "start",
+                    padding: "24px",
+                    border: "2px dashed var(--th-border)",
+                    borderRadius: "8px",
+                    textAlign: "center",
+                    color: "var(--th-text-muted)",
+                    fontSize: "13px",
                   }}
                 >
-                  <FormField
-                    label={idx === 0 ? "Category" : ""}
-                    id={`pp-cat-${idx}`}
-                    placeholder="e.g. Data Quality"
-                    value={pp.category}
-                    onChange={(v) => updatePainPoint(idx, "category", v)}
-                  />
-                  <FormField
-                    label={idx === 0 ? "Description" : ""}
-                    id={`pp-desc-${idx}`}
-                    placeholder="Teams spend 40% of time cleaning scraped data..."
-                    value={pp.description}
-                    onChange={(v) => updatePainPoint(idx, "description", v)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removePainPoint(idx)}
-                    style={{
-                      marginTop: idx === 0 ? "24px" : "0",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "var(--th-danger)",
-                      fontSize: "18px",
-                      padding: "8px",
-                      borderRadius: "6px",
-                    }}
-                  >
-                    ×
-                  </button>
+                  No case studies added yet
                 </div>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={addPainPoint}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 16px",
-              borderRadius: "8px",
-              border: "1px dashed var(--th-border-hover)",
-              background: "transparent",
-              color: "var(--th-text-secondary)",
-              fontSize: "13px",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "var(--th-inset)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "transparent";
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Pain Point
-          </button>
-        </SectionCard>
-
-        {/* Section 8: Case Studies */}
-        <SectionCard
-          title="Case Studies"
-          description="Optional — gives the AI real proof points to reference in articles"
-        >
-          {caseStudies.length === 0 ? (
-            <div
-              style={{
-                padding: "24px",
-                border: "2px dashed var(--th-border)",
-                borderRadius: "8px",
-                textAlign: "center",
-                color: "var(--th-text-muted)",
-                fontSize: "13px",
-              }}
-            >
-              No case studies added yet
-            </div>
-          ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-            >
-              {caseStudies.map((cs, idx) => (
+              ) : (
                 <div
-                  key={idx}
                   style={{
-                    padding: "16px",
-                    borderRadius: "8px",
-                    background: "var(--th-inset)",
-                    border: "1px solid var(--th-border)",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "12px",
+                    gap: "16px",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span
+                  {caseStudies.map((cs, idx) => (
+                    <div
+                      key={idx}
                       style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "var(--th-text-muted)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
+                        padding: "16px",
+                        borderRadius: "8px",
+                        background: "var(--th-inset)",
+                        border: "1px solid var(--th-border)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px",
                       }}
                     >
-                      Case Study {idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeCaseStudy(idx)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--th-danger)",
-                        fontSize: "13px",
-                        fontWeight: 500,
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <FormField
-                    label="Customer / Company Name"
-                    id={`cs-name-${idx}`}
-                    placeholder="Acme Corp"
-                    value={cs.name}
-                    onChange={(v) => updateCaseStudy(idx, "name", v)}
-                  />
-                  <FormField
-                    label="Problem"
-                    id={`cs-problem-${idx}`}
-                    placeholder="They were spending 3 days/week manually collecting pricing data..."
-                    value={cs.problem}
-                    onChange={(v) => updateCaseStudy(idx, "problem", v)}
-                    textarea
-                  />
-                  <FormField
-                    label="Solution"
-                    id={`cs-solution-${idx}`}
-                    placeholder="Switched to our Web Scraper API with JavaScript rendering..."
-                    value={cs.solution}
-                    onChange={(v) => updateCaseStudy(idx, "solution", v)}
-                    textarea
-                  />
-                  <FormField
-                    label="Key Result"
-                    id={`cs-result-${idx}`}
-                    placeholder="Reduced data collection time by 90%, saving $120K/year"
-                    value={cs.result}
-                    onChange={(v) => updateCaseStudy(idx, "result", v)}
-                  />
-                  <FormField
-                    label="Customer Quote"
-                    id={`cs-quote-${idx}`}
-                    placeholder={`"This cut our data ops costs in half." — Jane Smith, CTO`}
-                    value={cs.quote}
-                    onChange={(v) => updateCaseStudy(idx, "quote", v)}
-                    textarea
-                  />
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "var(--th-text-muted)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          Case Study {idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeCaseStudy(idx)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "var(--th-danger)",
+                            fontSize: "13px",
+                            fontWeight: 500,
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <FormField
+                        label="Customer / Company Name"
+                        id={`cs-name-${idx}`}
+                        placeholder="Acme Corp"
+                        value={cs.name}
+                        onChange={(v) => updateCaseStudy(idx, "name", v)}
+                      />
+                      <FormField
+                        label="Problem"
+                        id={`cs-problem-${idx}`}
+                        placeholder="They were spending 3 days/week manually collecting pricing data..."
+                        value={cs.problem}
+                        onChange={(v) => updateCaseStudy(idx, "problem", v)}
+                        textarea
+                      />
+                      <FormField
+                        label="Solution"
+                        id={`cs-solution-${idx}`}
+                        placeholder="Switched to our Web Scraper API with JavaScript rendering..."
+                        value={cs.solution}
+                        onChange={(v) => updateCaseStudy(idx, "solution", v)}
+                        textarea
+                      />
+                      <FormField
+                        label="Key Result"
+                        id={`cs-result-${idx}`}
+                        placeholder="Reduced data collection time by 90%, saving $120K/year"
+                        value={cs.result}
+                        onChange={(v) => updateCaseStudy(idx, "result", v)}
+                      />
+                      <FormField
+                        label="Customer Quote"
+                        id={`cs-quote-${idx}`}
+                        placeholder={`"This cut our data ops costs in half." — Jane Smith, CTO`}
+                        value={cs.quote}
+                        onChange={(v) => updateCaseStudy(idx, "quote", v)}
+                        textarea
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={addCaseStudy}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 16px",
-              borderRadius: "8px",
-              border: "1px dashed var(--th-border-hover)",
-              background: "transparent",
-              color: "var(--th-text-secondary)",
-              fontSize: "13px",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "var(--th-inset)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "transparent";
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Case Study
-          </button>
-        </SectionCard>
+              )}
+              <button
+                type="button"
+                onClick={addCaseStudy}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 16px",
+                  borderRadius: "8px",
+                  border: "1px dashed var(--th-border-hover)",
+                  background: "transparent",
+                  color: "var(--th-text-secondary)",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "var(--th-inset)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "transparent";
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Case Study
+              </button>
+            </SectionCard>
+          </>
+        )}
 
         {/* Submit */}
         <div
@@ -1160,7 +1261,7 @@ export default function NewSitePage() {
           </Link>
           <button
             type="submit"
-            disabled={submitting || !slug || !companyName || !wpBaseUrl}
+            disabled={submitting || !websiteUrl || !companyName}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -1169,17 +1270,17 @@ export default function NewSitePage() {
               borderRadius: "8px",
               border: "none",
               background:
-                submitting || !slug || !companyName || !wpBaseUrl
+                submitting || !websiteUrl || !companyName
                   ? "var(--th-border)"
                   : "var(--th-accent)",
               color:
-                submitting || !slug || !companyName || !wpBaseUrl
+                submitting || !websiteUrl || !companyName
                   ? "var(--th-text-muted)"
                   : "#fff",
               fontSize: "14px",
               fontWeight: 600,
               cursor:
-                submitting || !slug || !companyName || !wpBaseUrl
+                submitting || !websiteUrl || !companyName
                   ? "not-allowed"
                   : "pointer",
               transition: "background 0.15s ease",

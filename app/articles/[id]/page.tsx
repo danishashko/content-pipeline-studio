@@ -665,7 +665,7 @@ export default function ArticleDetailPage() {
         </div>
 
         {/* Right: Source verification */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "24px", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
           <div className="card" style={{ padding: "20px" }}>
             <h2 style={{ fontSize: "13px", fontWeight: 700, color: "var(--th-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 16px" }}>
               Source Verification

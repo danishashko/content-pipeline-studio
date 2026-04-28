@@ -198,7 +198,16 @@ export default function SchedulesPage() {
       }
       if (sitesRes.status === "fulfilled" && sitesRes.value.ok) {
         const d = await sitesRes.value.json();
-        setSites(Array.isArray(d) ? d : (d.sites ?? []));
+        const raw: Record<string, unknown>[] = Array.isArray(d) ? d : (d.sites ?? []);
+        setSites(
+          raw.map((s) => ({
+            id: s.id as string,
+            slug: (s.slug ?? "") as string,
+            companyName: (s.name ??
+              (s.config as Record<string, unknown>)?.companyName ??
+              s.slug) as string,
+          })),
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");

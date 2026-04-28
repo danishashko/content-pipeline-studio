@@ -154,7 +154,7 @@ Adding specific, sourced statistics increases AI visibility by 41% (Princeton GE
 
 **Expert quotations:** Include at least 1-2 direct quotes from named industry experts, analysts, or executives per article. Expert quotes improve AI visibility by 28% (Princeton GEO study). Frame quotes around specific claims or data, not generic platitudes.
 
-**Structured data blocks:** Use comparison tables, numbered steps, and bullet lists wherever possible. AI engines cite structured formats disproportionately more than prose. Convert any section comparing 3+ items into a markdown table.
+**Structured data blocks:** Use comparison tables, numbered steps, and bullet lists wherever possible. AI engines cite structured formats disproportionately more than prose. Convert any section comparing 3+ items into a markdown table. CRITICAL TABLE RULE: Only include data points you actually have verified figures for. NEVER add table rows or columns showing "Not published", "N/A", "Unknown", or any placeholder — if a metric isn't available for a tool, omit that column entirely rather than polluting the table with empty cells.
 
 **No hedging language:** NEVER use weak qualifiers. BANNED words/phrases: "might", "could potentially", "it is possible that", "generally speaking", "in some cases", "arguably", "it seems", "to some extent", "more or less", "tends to", "may or may not". Write with confident, authoritative clarity. Hedge ONLY when factual accuracy genuinely requires nuance.
 

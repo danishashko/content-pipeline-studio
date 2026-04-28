@@ -33,3 +33,41 @@ export async function GET(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+
+    // Fetch job to get keyword_id before deleting
+    const { data: job, error: fetchErr } = await supabase
+      .from("jobs")
+      .select("id, keyword_id")
+      .eq("id", id)
+      .single();
+
+    if (fetchErr || !job) {
+      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    }
+
+    // Delete the job
+    const { error: deleteErr } = await supabase.from("jobs").delete().eq("id", id);
+    if (deleteErr) {
+      return NextResponse.json({ error: deleteErr.message }, { status: 500 });
+    }
+
+    // Reset keyword status back to pending so it can be re-run
+    await supabase
+      .from("keywords")
+      .update({ status: "pending" })
+      .eq("id", job.keyword_id);
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
