@@ -1,6 +1,6 @@
 /**
  * Vendor screenshot capture for listicle articles.
- * Primary: ScreenshotOne API (paid, reliable)
+ * Primary: ScreenshotOne API (paid, reliable, viewport-cropped)
  * Fallback: Bright Data Browser API (cloud Chromium via CDP)
  *
  * Vendor URL resolution follows the working pipeline's 4-step strategy:
@@ -116,7 +116,7 @@ async function brightDataBrowserScreenshot(url: string): Promise<string> {
 }
 
 export async function captureScreenshot(url: string): Promise<string> {
-  // Primary: ScreenshotOne (paid, highest quality)
+  // Primary: ScreenshotOne (paid, viewport-cropped, highest quality)
   if (SCREENSHOTONE_KEY()) {
     try {
       return await screenshotOne(url);
@@ -127,7 +127,7 @@ export async function captureScreenshot(url: string): Promise<string> {
     }
   }
 
-  // Fallback: Bright Data Browser API (cloud Chromium, same stack as pipeline)
+  // Fallback: Bright Data Browser API (cloud Chromium via CDP)
   if (BRIGHT_DATA_BROWSER_AUTH()) {
     try {
       return await brightDataBrowserScreenshot(url);

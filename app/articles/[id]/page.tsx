@@ -52,6 +52,18 @@ interface PublishResult {
   publishedAt?: string;
 }
 
+interface VerificationEntry {
+  type: "url_check" | "stat_check";
+  targetUrl: string;
+  status: "verified" | "failed" | "skipped";
+  details?: string;
+}
+
+interface InternalLinkUsed {
+  url: string;
+  anchorText: string;
+}
+
 interface ArticleData {
   id: string;
   keyword?: string;
@@ -66,7 +78,7 @@ interface ArticleData {
     markdownContent?: string;
     wordCount?: number;
     faqs?: FaqItem[];
-    links?: LinkItem[];
+    internalLinksUsed?: InternalLinkUsed[];
   };
   // Validated stage
   validatedOutput?: {
@@ -74,17 +86,11 @@ interface ArticleData {
     markdownContent?: string;
     wordCount?: number;
     faqs?: FaqItem[];
-    links?: LinkItem[];
+    internalLinksUsed?: InternalLinkUsed[];
     verificationScore?: number;
   };
-  verificationLog?: {
-    links?: LinkItem[];
-    score?: number;
-    totalLinks?: number;
-    verifiedLinks?: number;
-    internalLinks?: number;
-    externalLinks?: number;
-  };
+  // Flat array of url_check + stat_check entries from the verify stage
+  verificationLog?: VerificationEntry[];
   publishResult?: PublishResult;
 }
 
@@ -466,11 +472,27 @@ export default function ArticleDetailPage() {
   const research = article?.researchOutput;
   const publish = article?.publishResult;
 
-  // Links: prefer verificationLog.links, else output.links
-  const allLinks: LinkItem[] = article?.verificationLog?.links ?? output?.links ?? [];
-  const internalLinks = allLinks.filter((l) => l.type === "internal" || l.url?.startsWith("/"));
-  const externalLinks = allLinks.filter((l) => l.type !== "internal" && !l.url?.startsWith("/"));
-  const verifiedCount = allLinks.filter((l) => l.verified === true || (l.status && l.status >= 200 && l.status < 300)).length;
+  // External links: from verificationLog (url_check entries only)
+  const externalLinks: LinkItem[] = (article?.verificationLog ?? [])
+    .filter((e) => e.type === "url_check")
+    .map((e) => ({
+      url: e.targetUrl,
+      type: "external" as const,
+      verified: e.status === "verified",
+      status: e.status === "verified" ? 200 : e.status === "failed" ? 0 : null,
+      text: e.targetUrl,
+    }));
+
+  // Internal links: from internalLinksUsed on the article output
+  const internalLinks: LinkItem[] = (output?.internalLinksUsed ?? []).map((l) => ({
+    url: l.url,
+    text: l.anchorText,
+    type: "internal" as const,
+    verified: true,
+  }));
+
+  const allLinks: LinkItem[] = [...internalLinks, ...externalLinks];
+  const verifiedCount = allLinks.filter((l) => l.verified === true).length;
   const passRate = allLinks.length > 0 ? Math.round((verifiedCount / allLinks.length) * 100) : null;
   const wordCount = output?.wordCount ?? (markdownContent ? countWords(markdownContent) : 0);
 
