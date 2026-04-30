@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface Site {
   id: string;
@@ -107,6 +108,7 @@ function formatDate(d: string) {
 }
 
 export default function QueuePage() {
+  const isMobile = useIsMobile();
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
@@ -332,209 +334,144 @@ export default function QueuePage() {
         </div>
       )}
 
-      {/* Keywords table */}
-      <div className="card" style={{ overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              minWidth: "560px",
-            }}
-          >
-            <thead>
-              <tr style={{ background: "var(--th-inset)" }}>
-                {[
-                  "Keyword",
-                  "Site",
-                  "Status",
-                  "Priority",
-                  "Word Count",
-                  "Created",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 16px",
-                      textAlign: "left",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "var(--th-text-muted)",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <td key={j} style={{ padding: "14px 16px" }}>
-                        <div
-                          className="skeleton"
-                          style={{
-                            height: "14px",
-                            width: j === 0 ? "60%" : "40%",
-                            borderRadius: "4px",
-                          }}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : displayedKeywords.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    style={{
-                      padding: "60px 16px",
-                      textAlign: "center",
-                      color: "var(--th-text-muted)",
-                      fontSize: "14px",
-                    }}
-                  >
-                    No keywords in queue. Import keywords below to get started.
-                  </td>
-                </tr>
-              ) : (
-                displayedKeywords.map((kw, idx) => (
-                  <tr
-                    key={kw.id}
-                    style={{
-                      borderTop:
-                        idx > 0 ? "1px solid var(--th-border)" : "none",
-                      transition: "background 0.1s ease",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background =
-                        "var(--th-card-hover)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
-                  >
-                    <td
+      {/* Keywords list */}
+      {isMobile ? (
+        /* Mobile: card per keyword */
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div className="skeleton" style={{ height: "14px", width: "70%", borderRadius: "4px" }} />
+                <div className="skeleton" style={{ height: "12px", width: "40%", borderRadius: "4px" }} />
+              </div>
+            ))
+          ) : displayedKeywords.length === 0 ? (
+            <div className="card" style={{ padding: "40px 16px", textAlign: "center", color: "var(--th-text-muted)", fontSize: "14px" }}>
+              No keywords in queue. Import keywords below to get started.
+            </div>
+          ) : (
+            displayedKeywords.map((kw) => (
+              <div key={kw.id} className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--th-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {kw.keyword}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "var(--th-text-muted)", marginTop: "3px" }}>
+                      {siteMap[kw.siteId] ?? kw.site ?? "—"} · {kw.targetWordCount.toLocaleString()} words
+                    </div>
+                  </div>
+                  <StatusBadge status={kw.status} />
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {(kw.status === "pending" || kw.status === "failed") && (
+                    <button
+                      onClick={() => handleRun(kw.id)}
+                      disabled={runningId === kw.id}
                       style={{
-                        padding: "12px 16px",
+                        flex: 1,
+                        padding: "8px",
+                        borderRadius: "6px",
+                        border: "none",
+                        background: runningId === kw.id ? "var(--th-inset)" : "var(--th-accent-soft)",
+                        color: runningId === kw.id ? "var(--th-text-muted)" : "var(--th-text-accent)",
                         fontSize: "13px",
                         fontWeight: 600,
-                        color: "var(--th-text)",
-                        maxWidth: "220px",
+                        cursor: runningId === kw.id ? "not-allowed" : "pointer",
                       }}
                     >
-                      <span
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          display: "block",
-                        }}
-                      >
-                        {kw.keyword}
-                      </span>
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 16px",
-                        fontSize: "12px",
-                        color: "var(--th-text-secondary)",
-                      }}
-                    >
-                      {siteMap[kw.siteId] ?? kw.site ?? "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <StatusBadge status={kw.status} />
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 16px",
-                        fontSize: "13px",
-                        color: "var(--th-text-secondary)",
-                      }}
-                    >
-                      {kw.priority}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 16px",
-                        fontSize: "13px",
-                        color: "var(--th-text-secondary)",
-                      }}
-                    >
-                      {kw.targetWordCount.toLocaleString()}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 16px",
-                        fontSize: "12px",
-                        color: "var(--th-text-muted)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {formatDate(kw.createdAt)}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        {kw.status === "pending" || kw.status === "failed" ? (
-                          <button
-                            onClick={() => handleRun(kw.id)}
-                            disabled={runningId === kw.id}
-                            style={{
-                              padding: "5px 12px",
-                              borderRadius: "6px",
-                              border: "none",
-                              background:
-                                runningId === kw.id
-                                  ? "var(--th-inset)"
-                                  : "var(--th-accent-soft)",
-                              color:
-                                runningId === kw.id
-                                  ? "var(--th-text-muted)"
-                                  : "var(--th-text-accent)",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              cursor:
-                                runningId === kw.id ? "not-allowed" : "pointer",
-                              transition: "background 0.15s ease",
-                            }}
-                          >
-                            {runningId === kw.id ? "Starting..." : "Run"}
-                          </button>
-                        ) : null}
-                        <button
-                          onClick={() => handleDelete(kw.id)}
-                          disabled={deletingId === kw.id}
-                          style={{
-                            padding: "5px 12px",
-                            borderRadius: "6px",
-                            border: "none",
-                            background: "var(--th-danger-soft)",
-                            color: "var(--th-danger)",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            cursor:
-                              deletingId === kw.id ? "not-allowed" : "pointer",
-                            opacity: deletingId === kw.id ? 0.6 : 1,
-                          }}
-                        >
-                          {deletingId === kw.id ? "..." : "Delete"}
-                        </button>
-                      </div>
+                      {runningId === kw.id ? "Starting..." : "▶ Run"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(kw.id)}
+                    disabled={deletingId === kw.id}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: "var(--th-danger-soft)",
+                      color: "var(--th-danger)",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: deletingId === kw.id ? "not-allowed" : "pointer",
+                      opacity: deletingId === kw.id ? 0.6 : 1,
+                    }}
+                  >
+                    {deletingId === kw.id ? "..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        /* Desktop: full table */
+        <div className="card" style={{ overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "560px" }}>
+              <thead>
+                <tr style={{ background: "var(--th-inset)" }}>
+                  {["Keyword", "Site", "Status", "Priority", "Word Count", "Created", "Actions"].map((h) => (
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--th-text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 7 }).map((_, j) => (
+                        <td key={j} style={{ padding: "14px 16px" }}>
+                          <div className="skeleton" style={{ height: "14px", width: j === 0 ? "60%" : "40%", borderRadius: "4px" }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : displayedKeywords.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: "60px 16px", textAlign: "center", color: "var(--th-text-muted)", fontSize: "14px" }}>
+                      No keywords in queue. Import keywords below to get started.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  displayedKeywords.map((kw, idx) => (
+                    <tr key={kw.id} style={{ borderTop: idx > 0 ? "1px solid var(--th-border)" : "none", transition: "background 0.1s ease" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--th-card-hover)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <td style={{ padding: "12px 16px", fontSize: "13px", fontWeight: 600, color: "var(--th-text)", maxWidth: "220px" }}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{kw.keyword}</span>
+                      </td>
+                      <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-secondary)" }}>{siteMap[kw.siteId] ?? kw.site ?? "—"}</td>
+                      <td style={{ padding: "12px 16px" }}><StatusBadge status={kw.status} /></td>
+                      <td style={{ padding: "12px 16px", fontSize: "13px", color: "var(--th-text-secondary)" }}>{kw.priority}</td>
+                      <td style={{ padding: "12px 16px", fontSize: "13px", color: "var(--th-text-secondary)" }}>{kw.targetWordCount.toLocaleString()}</td>
+                      <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-muted)", whiteSpace: "nowrap" }}>{formatDate(kw.createdAt)}</td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          {(kw.status === "pending" || kw.status === "failed") && (
+                            <button onClick={() => handleRun(kw.id)} disabled={runningId === kw.id}
+                              style={{ padding: "5px 12px", borderRadius: "6px", border: "none", background: runningId === kw.id ? "var(--th-inset)" : "var(--th-accent-soft)", color: runningId === kw.id ? "var(--th-text-muted)" : "var(--th-text-accent)", fontSize: "12px", fontWeight: 600, cursor: runningId === kw.id ? "not-allowed" : "pointer" }}>
+                              {runningId === kw.id ? "Starting..." : "Run"}
+                            </button>
+                          )}
+                          <button onClick={() => handleDelete(kw.id)} disabled={deletingId === kw.id}
+                            style={{ padding: "5px 12px", borderRadius: "6px", border: "none", background: "var(--th-danger-soft)", color: "var(--th-danger)", fontSize: "12px", fontWeight: 600, cursor: deletingId === kw.id ? "not-allowed" : "pointer", opacity: deletingId === kw.id ? 0.6 : 1 }}>
+                            {deletingId === kw.id ? "..." : "Delete"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Bulk Import */}
       <div className="card" style={{ padding: "24px" }}>

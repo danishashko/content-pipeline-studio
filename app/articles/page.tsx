@@ -275,258 +275,122 @@ export default function ArticlesPage() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="card" style={{ overflow: "hidden" }} id="articles-table">
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              minWidth: "600px",
-            }}
-          >
-            <thead>
-              <tr style={{ background: "var(--th-inset)" }}>
-                {[
-                  "Title",
-                  "Site",
-                  "Keyword",
-                  "Words",
-                  "Links",
-                  "Date",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 16px",
-                      textAlign: "left",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "var(--th-text-muted)",
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <td key={j} style={{ padding: "14px 16px" }}>
-                        <div
-                          className="skeleton"
-                          style={{
-                            height: "14px",
-                            width: j === 0 ? "70%" : "40%",
-                            borderRadius: "4px",
-                          }}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    style={{
-                      padding: "60px 16px",
-                      textAlign: "center",
-                      color: "var(--th-text-muted)",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {search
-                      ? `No articles matching "${search}"`
-                      : "No articles yet. Run the pipeline to generate content."}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((article, idx) => {
-                  const title =
-                    article.title ?? article.metadata?.title ?? "Untitled";
-                  const keyword =
-                    article.keyword ?? article.metadata?.targetKeyword ?? "—";
-                  const siteName =
-                    siteMap[article.siteId ?? ""] ?? article.site ?? "—";
-                  const words = article.wordCount ?? article.word_count ?? 0;
-                  const linksVerified = article.linksVerified ?? 0;
-                  const linksTotal = article.linksTotal ?? 0;
-
-                  return (
-                    <tr
-                      key={article.id}
-                      style={{
-                        borderTop:
-                          idx > 0 ? "1px solid var(--th-border)" : "none",
-                        transition: "background 0.1s ease",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "var(--th-card-hover)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
-                      <td style={{ padding: "12px 16px", maxWidth: "260px" }}>
-                        <Link
-                          href={`/articles/${article.id}`}
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: 600,
-                            color: "var(--th-text)",
-                            textDecoration: "none",
-                            display: "block",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.color =
-                              "var(--th-text-accent)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.color = "var(--th-text)")
-                          }
-                        >
-                          {title}
-                        </Link>
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          fontSize: "12px",
-                          color: "var(--th-text-secondary)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {siteName}
-                      </td>
-                      <td style={{ padding: "12px 16px", maxWidth: "180px" }}>
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--th-text-secondary)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            display: "block",
-                          }}
-                        >
-                          {keyword}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          fontSize: "13px",
-                          color: "var(--th-text-secondary)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {words > 0 ? words.toLocaleString() : "—"}
-                      </td>
-                      <td
-                        style={{ padding: "12px 16px", whiteSpace: "nowrap" }}
-                      >
-                        {linksTotal > 0 ? (
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              color:
-                                linksVerified === linksTotal
-                                  ? "var(--th-success)"
-                                  : "var(--th-warning)",
-                            }}
-                          >
-                            {linksVerified}/{linksTotal}
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              color: "var(--th-text-muted)",
-                            }}
-                          >
-                            —
-                          </span>
-                        )}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 16px",
-                          fontSize: "12px",
-                          color: "var(--th-text-muted)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {formatDate(article.createdAt ?? article.created_at)}
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "6px",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Link
-                            href={`/articles/${article.id}`}
-                            style={{
-                              padding: "5px 10px",
-                              borderRadius: "6px",
-                              background: "var(--th-accent-soft)",
-                              color: "var(--th-text-accent)",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              textDecoration: "none",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            View
-                          </Link>
-                          <button
-                            onClick={() => handleExport(article)}
-                            title="Export Markdown"
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              padding: "5px 8px",
-                              borderRadius: "6px",
-                              border: "1px solid var(--th-border)",
-                              background: "transparent",
-                              color: "var(--th-text-secondary)",
-                              cursor: "pointer",
-                              transition: "background 0.15s ease",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background =
-                                "var(--th-inset)")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = "transparent")
-                            }
-                          >
-                            <ExportIcon />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      {/* Articles list */}
+      {isMobile ? (
+        /* Mobile: card per article */
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div className="skeleton" style={{ height: "14px", width: "75%", borderRadius: "4px" }} />
+                <div className="skeleton" style={{ height: "12px", width: "45%", borderRadius: "4px" }} />
+              </div>
+            ))
+          ) : filtered.length === 0 ? (
+            <div className="card" style={{ padding: "40px 16px", textAlign: "center", color: "var(--th-text-muted)", fontSize: "14px" }}>
+              {search ? `No articles matching "${search}"` : "No articles yet. Run the pipeline to generate content."}
+            </div>
+          ) : (
+            filtered.map((article) => {
+              const title = article.title ?? article.metadata?.title ?? "Untitled";
+              const keyword = article.keyword ?? article.metadata?.targetKeyword ?? "—";
+              const siteName = siteMap[article.siteId ?? ""] ?? article.site ?? "—";
+              const words = article.wordCount ?? article.word_count ?? 0;
+              return (
+                <div key={article.id} className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div>
+                    <Link href={`/articles/${article.id}`} style={{ fontSize: "14px", fontWeight: 600, color: "var(--th-text)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {title}
+                    </Link>
+                    <div style={{ fontSize: "12px", color: "var(--th-text-muted)", marginTop: "4px" }}>
+                      {siteName} · {keyword} {words > 0 ? `· ${words.toLocaleString()} words` : ""}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <Link href={`/articles/${article.id}`} style={{ flex: 1, padding: "8px", borderRadius: "6px", background: "var(--th-accent-soft)", color: "var(--th-text-accent)", fontSize: "13px", fontWeight: 600, textDecoration: "none", textAlign: "center" }}>
+                      View
+                    </Link>
+                    <button onClick={() => handleExport(article)} title="Export Markdown"
+                      style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--th-border)", background: "transparent", color: "var(--th-text-secondary)", cursor: "pointer", fontSize: "13px" }}>
+                      <ExportIcon />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
-      </div>
+      ) : (
+        /* Desktop: full table */
+        <div className="card" style={{ overflow: "hidden" }} id="articles-table">
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
+              <thead>
+                <tr style={{ background: "var(--th-inset)" }}>
+                  {["Title", "Site", "Keyword", "Words", "Links", "Date", "Actions"].map((h) => (
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "11px", fontWeight: 600, color: "var(--th-text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i}>{Array.from({ length: 7 }).map((_, j) => (
+                      <td key={j} style={{ padding: "14px 16px" }}>
+                        <div className="skeleton" style={{ height: "14px", width: j === 0 ? "70%" : "40%", borderRadius: "4px" }} />
+                      </td>
+                    ))}</tr>
+                  ))
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={7} style={{ padding: "60px 16px", textAlign: "center", color: "var(--th-text-muted)", fontSize: "14px" }}>
+                    {search ? `No articles matching "${search}"` : "No articles yet. Run the pipeline to generate content."}
+                  </td></tr>
+                ) : (
+                  filtered.map((article, idx) => {
+                    const title = article.title ?? article.metadata?.title ?? "Untitled";
+                    const keyword = article.keyword ?? article.metadata?.targetKeyword ?? "—";
+                    const siteName = siteMap[article.siteId ?? ""] ?? article.site ?? "—";
+                    const words = article.wordCount ?? article.word_count ?? 0;
+                    const linksVerified = article.linksVerified ?? 0;
+                    const linksTotal = article.linksTotal ?? 0;
+                    return (
+                      <tr key={article.id} style={{ borderTop: idx > 0 ? "1px solid var(--th-border)" : "none", transition: "background 0.1s ease" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--th-card-hover)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <td style={{ padding: "12px 16px", maxWidth: "260px" }}>
+                          <Link href={`/articles/${article.id}`} style={{ fontSize: "13px", fontWeight: 600, color: "var(--th-text)", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--th-text-accent)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--th-text)")}>{title}</Link>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-secondary)", whiteSpace: "nowrap" }}>{siteName}</td>
+                        <td style={{ padding: "12px 16px", maxWidth: "180px" }}>
+                          <span style={{ fontSize: "12px", color: "var(--th-text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{keyword}</span>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: "13px", color: "var(--th-text-secondary)", whiteSpace: "nowrap" }}>{words > 0 ? words.toLocaleString() : "—"}</td>
+                        <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                          {linksTotal > 0 ? <span style={{ fontSize: "12px", color: linksVerified === linksTotal ? "var(--th-success)" : "var(--th-warning)" }}>{linksVerified}/{linksTotal}</span>
+                            : <span style={{ fontSize: "12px", color: "var(--th-text-muted)" }}>—</span>}
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: "12px", color: "var(--th-text-muted)", whiteSpace: "nowrap" }}>{formatDate(article.createdAt ?? article.created_at)}</td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                            <Link href={`/articles/${article.id}`} style={{ padding: "5px 10px", borderRadius: "6px", background: "var(--th-accent-soft)", color: "var(--th-text-accent)", fontSize: "12px", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>View</Link>
+                            <button onClick={() => handleExport(article)} title="Export Markdown"
+                              style={{ display: "flex", alignItems: "center", padding: "5px 8px", borderRadius: "6px", border: "1px solid var(--th-border)", background: "transparent", color: "var(--th-text-secondary)", cursor: "pointer" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--th-inset)")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}><ExportIcon /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Bright Data subtle banner */}
       <div

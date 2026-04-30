@@ -110,7 +110,9 @@ function LeadGate({ onSuccess }: { onSuccess: () => void }) {
           borderRadius: "20px",
           border: "1px solid rgba(118, 165, 255, 0.2)",
           boxShadow: "0 32px 64px rgba(0, 0, 0, 0.5)",
-          padding: "48px 40px",
+          padding: "clamp(24px, 5vw, 48px) clamp(20px, 6vw, 40px)",
+          overflowY: "auto",
+          maxHeight: "calc(100dvh - 48px)",
         }}
       >
         {/* Logo */}
