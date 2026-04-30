@@ -238,7 +238,7 @@ function renderMarkdown(md: string): React.ReactNode[] {
         const bodyRows = tableLines.slice(2).map(parseCells); // skip separator row
         nodes.push(
           <div key={nextKey()} style={{ margin: "16px 0", overflowX: "auto", borderRadius: "8px", border: "1px solid var(--th-border)" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+            <table style={{ width: "100%", minWidth: "480px", borderCollapse: "collapse", fontSize: "13px", wordBreak: "normal", overflowWrap: "normal" }}>
               <thead>
                 <tr>
                   {headerCells.map((cell, ci) => (
@@ -247,6 +247,7 @@ function renderMarkdown(md: string): React.ReactNode[] {
                       color: "var(--th-text)", background: "var(--th-inset)",
                       borderBottom: "2px solid var(--th-border)",
                       fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em",
+                      whiteSpace: "nowrap",
                     }}>
                       {inlineRender(cell)}
                     </th>
@@ -260,7 +261,7 @@ function renderMarkdown(md: string): React.ReactNode[] {
                       <td key={ci} style={{
                         padding: "10px 14px", color: "var(--th-text)",
                         borderBottom: "1px solid var(--th-border)",
-                        lineHeight: 1.5,
+                        lineHeight: 1.5, whiteSpace: "nowrap",
                       }}>
                         {inlineRender(cell)}
                       </td>
