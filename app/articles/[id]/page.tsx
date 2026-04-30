@@ -643,6 +643,25 @@ export default function ArticleDetailPage() {
         </div>
       </div>
 
+      {/* Mobile: compact stats strip above content */}
+      {isMobile && allLinks.length > 0 && (
+        <div className="card" style={{ padding: "14px 16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+            {[
+              { label: "Links", value: allLinks.length },
+              { label: "Pass %", value: passRate !== null ? `${passRate}%` : "—" },
+              { label: "Internal", value: internalLinks.length || "—" },
+              { label: "External", value: externalLinks.length || "—" },
+            ].map((s) => (
+              <div key={s.label} style={{ textAlign: "center", padding: "8px 4px", borderRadius: "8px", background: "var(--th-inset)" }}>
+                <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--th-text)", lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: "10px", color: "var(--th-text-muted)", marginTop: "3px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Two-column: content + source verification */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 320px", gap: "24px", alignItems: "start" }}>
         {/* Left: Article content */}
@@ -664,8 +683,8 @@ export default function ArticleDetailPage() {
           </div>
         </div>
 
-        {/* Right: Source verification */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "24px", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
+        {/* Right: Source verification — desktop only (mobile gets compact strip above) */}
+        {!isMobile && <div style={{ display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "24px", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
           <div className="card" style={{ padding: "20px" }}>
             <h2 style={{ fontSize: "13px", fontWeight: 700, color: "var(--th-text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 16px" }}>
               Source Verification
@@ -773,6 +792,7 @@ export default function ArticleDetailPage() {
             )}
           </div>
         </div>
+        }
       </div>
 
       {/* FAQs */}
